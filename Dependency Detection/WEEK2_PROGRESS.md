@@ -16,16 +16,6 @@
    - Runs the dependency detector on them
    - Saves any *new* dependency links, skipping duplicates on repeat runs
 
-3. **Dependency graph construction (`app/graph_builder.py`)**
-   Built the actual **graph** using NetworkX (per our tech stack):
-   - Tasks become graph nodes (with title, type, subject, deadline)
-   - Dependencies become directed edges (prerequisite → dependent task)
-   - Added a cycle check (`has_circular_dependency`) so we can catch invalid/contradictory dependency chains early
-   - Added `export_graph_for_frontend()` which converts the graph into a simple `{nodes, edges}` JSON shape, ready for the React dependency-graph visualization
-
-4. **Tests (`tests/test_graph_builder.py`)**
-   5 new tests covering: persistence + duplicate prevention, correct graph structure, frontend export shape, prerequisite lookup, and cycle detection. All passing (9/9 total across Week 1 + 2).
-
 ## Not yet done (planned for remaining weeks)
 - FastAPI endpoint to expose graph data to the frontend
 - Frontend rendering of the graph (React + graph visualization library)
