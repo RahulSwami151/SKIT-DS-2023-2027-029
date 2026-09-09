@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TIM - Task Graph Dashboard</title>
+    <style>
+      :root {
+        --bg: #f5f7fb;
+        --panel: #ffffff;
+        --primary: #4f46e5;
+        --primary-soft: rgba(79, 70, 229, 0.12);
+        --secondary: #10b981;
+        --warning: #f59e0b;
+        --text: #111827;
+        --muted: #6b7280;
+        --line: #dbe3f0;
+        --shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        background: linear-gradient(135deg, #eef4ff, #f8f9ff);
+        color: var(--text);
+      }
+
+      .page {
+        max-width: 1200px;
+        margin: 32px auto;
+        padding: 24px;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        gap: 16px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 2rem;
+      }
+
+      .btn {
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 12px 18px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: var(--shadow);
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        box-shadow: var(--shadow);
+      }
+
+      .toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 18px 22px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .filters {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .chip {
+        background: var(--primary-soft);
+        color: var(--primary);
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+
+      .dashboard {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        min-height: 620px;
+      }
+
+      .sidebar {
+        border-right: 1px solid var(--line);
+        padding: 20px 18px;
+        background: #fcfcff;
+      }
+
+      .task-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .task-item {
+        padding: 14px 12px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: white;
+      }
+
+      .task-item h3 {
+        margin: 0 0 6px;
+        font-size: 0.98rem;
+      }
+
+      .meta {
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .status {
+        display: inline-block;
+        margin-top: 8px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+      }
+
+      .status.reading { background: #dbeafe; color: #1d4ed8; }
+      .status.assignment { background: #dcfce7; color: #15803d; }
+      .status.project { background: #fef3c7; color: #b45309; }
+      .status.quiz { background: #fce7f3; color: #9d174d; }
+
+      .graph-panel {
+        position: relative;
+        padding: 16px;
+        background: linear-gradient(180deg, #ffffff, #f7f8ff);
+      }
+
+      .legend {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+
+      .graph-box {
+        width: 100%;
+        height: 520px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: radial-gradient(circle at top, #ffffff 0%, #f6f8ff 100%);
+        overflow: hidden;
+      }
+
+      svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .task-node {
+        cursor: pointer;
+      }
+
+      .task-node circle {
+        stroke: white;
+        stroke-width: 3;
+        filter: drop-shadow(0 8px 12px rgba(79, 70, 229, 0.18));
+      }
+
+      .task-node text {
+        font-weight: 700;
+        font-size: 12px;
+        fill: #1f2937;
+      }
+
+      .task-node .subtitle {
+        font-size: 11px;
+        fill: var(--muted);
+        font-weight: 600;
+      }
+
+      .edge-label {
+        font-size: 11px;
+        fill: var(--muted);
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="header">
+        <h1>Task Dependency Graph</h1>
+        <button class="btn">Generate Graph</button>
+      </div>
+
+      <div class="panel">
+        <div class="toolbar">
+          <div class="filters">
+            <span class="chip">Dashboard</span>
+            <span class="chip">Priority view</span>
+            <span class="chip">Dependency map</span>
+          </div>
+          <span class="meta">Updated: 12 Sep 2026</span>
+        </div>
+
+        <div class="dashboard">
+          <aside class="sidebar">
+            <ul class="task-list" id="taskList"></ul>
+          </aside>
+
+          <main class="graph-panel">
+            <div class="legend">
+              <div class="legend-item"><span class="dot" style="background:#4f46e5;"></span>Priority / main flow</div>
+              <div class="legend-item"><span class="dot" style="background:#10b981;"></span>Supporting task</div>
+              <div class="legend-item"><span class="dot" style="background:#f59e0b;"></span>Dependency link</div>
+            </div>
+
+            <div class="graph-box">
+              <svg id="graphSvg" viewBox="0 0 820 500" preserveAspectRatio="xMidYMid meet"></svg>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const graphData = {
+        nodes: [
+          { id: 1, title: 'Read Ch.5', task_type: 'reading', subject: 'DBMS' },
+          { id: 2, title: 'DBMS Assignment', task_type: 'assignment', subject: 'DBMS' },
+          { id: 3, title: 'Project Proposal', task_type: 'project', subject: 'AI' },
+          { id: 4, title: 'Quiz Revision', task_type: 'quiz', subject: 'ML' },
+          { id: 5, title: 'Final Review', task_type: 'exam', subject: 'CS' }
+        ],
+        edges: [
+          { source: 2, target: 1, reason: 'Needs reading summary' },
+          { source: 3, target: 1, reason: 'Uses key concepts' },
+          { source: 4, target: 1, reason: 'Based on chapter notes' },
+          { source: 5, target: 2, reason: 'Assignment prepares exam' },
+          { source: 5, target: 3, reason: 'Project supports final review' }
+        ]
+      };
+
+      const taskTypeColors = {
+        reading: '#4f46e5',
+        assignment: '#10b981',
+        project: '#f59e0b',
+        quiz: '#ec4899',
+        exam: '#8b5cf6'
+      };
+
+      const nodePositions = {
+        1: { x: 200, y: 150 },
+        2: { x: 420, y: 120 },
+        3: { x: 640, y: 210 },
+        4: { x: 300, y: 330 },
+        5: { x: 560, y: 360 }
+      };
+
+      const sidebar = document.getElementById('taskList');
+      graphData.nodes.forEach((task) => {
+        const li = document.createElement('li');
+        li.className = 'task-item';
+        li.innerHTML = `
+          <h3>${task.title}</h3>
+          <div class="meta">${task.subject}</div>
+          <span class="status ${task.task_type}">${task.task_type}</span>
+        `;
+        sidebar.appendChild(li);
+      });
+
+      const svg = document.getElementById('graphSvg');
+
+      graphData.edges.forEach((edge) => {
+        const from = nodePositions[edge.source];
+        const to = nodePositions[edge.target];
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', from.x);
+        line.setAttribute('y1', from.y);
+        line.setAttribute('x2', to.x);
+        line.setAttribute('y2', to.y);
+        line.setAttribute('stroke', '#94a3b8');
+        line.setAttribute('stroke-width', '2.5');
+        line.setAttribute('stroke-linecap', 'round');
+        line.setAttribute('marker-end', 'url(#arrowhead)');
+        line.setAttribute('opacity', '0.9');
+        svg.appendChild(line);
+
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', (from.x + to.x) / 2);
+        label.setAttribute('y', (from.y + to.y) / 2 - 10);
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('class', 'edge-label');
+        label.textContent = edge.reason;
+        svg.appendChild(label);
+      });
+
+      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      defs.innerHTML = `
+        <marker id="arrowhead" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+          <path d="M0,0 L0,12 L12,6 z" fill="#94a3b8"></path>
+        </marker>
+      `;
+      svg.appendChild(defs);
+
+      graphData.nodes.forEach((task) => {
+        const pos = nodePositions[task.id];
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'task-node');
+
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', pos.x);
+        circle.setAttribute('cy', pos.y);
+        circle.setAttribute('r', 46);
+        circle.setAttribute('fill', taskTypeColors[task.task_type] || '#64748b');
+
+        const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        title.setAttribute('x', pos.x);
+        title.setAttribute('y', pos.y + 4);
+        title.setAttribute('text-anchor', 'middle');
+        title.textContent = task.title.split(' ')[0];
+
+        const subtitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        subtitle.setAttribute('x', pos.x);
+        subtitle.setAttribute('y', pos.y + 24);
+        subtitle.setAttribute('text-anchor', 'middle');
+        subtitle.setAttribute('class', 'subtitle');
+        subtitle.textContent = task.subject;
+
+        g.appendChild(circle);
+        g.appendChild(title);
+        g.appendChild(subtitle);
+        svg.appendChild(g);
+      });
+    </script>
+  </body>
+</html>
