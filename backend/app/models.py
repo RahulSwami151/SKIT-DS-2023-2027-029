@@ -1,9 +1,26 @@
-"""SQLAlchemy models for tasks and detected dependencies."""
+"""SQLAlchemy models for users, tasks, detected dependencies, and journal entries.
+
+MERGE NOTE (Database Design, Week 2):
+  - Task, TaskDependency, and TaskType are Rahul's original code from the
+    Dependency Detection story — column names (prerequisite_task_id, reason)
+    are UNCHANGED so dependency_detector.py and persistence.py keep working.
+  - Added: User, JournalEntry (new tables — didn't exist before).
+  - Added to Task: priority, importance, mood, status, sor_score, updated_at.
+  - Added to TaskDependency: created_at, UNIQUE(task_id, prerequisite_task_id),
+    CHECK(task_id != prerequisite_task_id).
+  - student_id now has ForeignKey("users.id") added — FLAG FOR RAHUL: this is
+    a real behavior change. Any existing code inserting tasks with a
+    student_id that doesn't exist in `users` will now fail. Confirm with him
+    before merging.
+"""
 
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import Column, DateTime, Enum as SAEnum, ForeignKey, Integer, String
+from sqlalchemy import (
+    Column, DateTime, Enum as SAEnum, ForeignKey, Integer, String,
+    SmallInteger, Numeric, Text, CheckConstraint, UniqueConstraint,
+)
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
