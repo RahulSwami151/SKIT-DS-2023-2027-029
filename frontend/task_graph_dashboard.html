@@ -57,6 +57,11 @@
         box-shadow: var(--shadow);
       }
 
+      .btn:disabled {
+        cursor: wait;
+        opacity: 0.65;
+      }
+
       .panel {
         background: var(--panel);
         border: 1px solid var(--line);
@@ -113,6 +118,14 @@
         border-radius: 14px;
         border: 1px solid var(--line);
         background: white;
+        cursor: pointer;
+        transition: border-color 160ms ease, transform 160ms ease;
+      }
+
+      .task-item:hover,
+      .task-item.selected {
+        border-color: var(--primary);
+        transform: translateX(3px);
       }
 
       .task-item h3 {
@@ -209,13 +222,32 @@
         fill: var(--muted);
         font-weight: 600;
       }
+
+      .graph-message {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .task-details {
+        margin-top: 18px;
+        padding: 14px;
+        border-left: 3px solid var(--primary);
+        background: var(--primary-soft);
+        border-radius: 0 10px 10px 0;
+        font-size: 0.84rem;
+      }
+
+      .task-details strong {
+        display: block;
+        margin-bottom: 5px;
+      }
     </style>
   </head>
   <body>
     <div class="page">
       <div class="header">
         <h1>Task Dependency Graph</h1>
-        <button class="btn">Generate Graph</button>
+        <button class="btn" id="generateGraph" type="button">Generate Graph</button>
       </div>
 
       <div class="panel">
@@ -225,12 +257,13 @@
             <span class="chip">Priority view</span>
             <span class="chip">Dependency map</span>
           </div>
-          <span class="meta">Updated: 12 Sep 2026</span>
+          <span class="graph-message" id="graphMessage" role="status">Showing demo data</span>
         </div>
 
         <div class="dashboard">
           <aside class="sidebar">
             <ul class="task-list" id="taskList"></ul>
+            <div class="task-details" id="taskDetails">Select a task to inspect its connections.</div>
           </aside>
 
           <main class="graph-panel">
@@ -249,7 +282,7 @@
     </div>
 
     <script>
-      const graphData = {
+      const demoGraphData = {
         nodes: [
           { id: 1, title: 'Read Ch.5', task_type: 'reading', subject: 'DBMS' },
           { id: 2, title: 'DBMS Assignment', task_type: 'assignment', subject: 'DBMS' },
@@ -283,81 +316,130 @@
       };
 
       const sidebar = document.getElementById('taskList');
-      graphData.nodes.forEach((task) => {
-        const li = document.createElement('li');
-        li.className = 'task-item';
-        li.innerHTML = `
-          <h3>${task.title}</h3>
-          <div class="meta">${task.subject}</div>
-          <span class="status ${task.task_type}">${task.task_type}</span>
-        `;
-        sidebar.appendChild(li);
-      });
-
       const svg = document.getElementById('graphSvg');
+      const details = document.getElementById('taskDetails');
+      const message = document.getElementById('graphMessage');
+      const generateButton = document.getElementById('generateGraph');
+      let graphData = demoGraphData;
+      let selectedTaskId = null;
 
-      graphData.edges.forEach((edge) => {
-        const from = nodePositions[edge.source];
-        const to = nodePositions[edge.target];
+      function createSvgElement(name, attributes = {}) {
+        const element = document.createElementNS('http://www.w3.org/2000/svg', name);
+        Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, value));
+        return element;
+      }
 
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', from.x);
-        line.setAttribute('y1', from.y);
-        line.setAttribute('x2', to.x);
-        line.setAttribute('y2', to.y);
-        line.setAttribute('stroke', '#94a3b8');
-        line.setAttribute('stroke-width', '2.5');
-        line.setAttribute('stroke-linecap', 'round');
-        line.setAttribute('marker-end', 'url(#arrowhead)');
-        line.setAttribute('opacity', '0.9');
-        svg.appendChild(line);
+      function selectTask(taskId) {
+        selectedTaskId = taskId;
+        const task = graphData.nodes.find((node) => node.id === taskId);
+        if (!task) return;
 
-        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        label.setAttribute('x', (from.x + to.x) / 2);
-        label.setAttribute('y', (from.y + to.y) / 2 - 10);
-        label.setAttribute('text-anchor', 'middle');
-        label.setAttribute('class', 'edge-label');
-        label.textContent = edge.reason;
-        svg.appendChild(label);
-      });
+        const dependencies = graphData.edges.filter(
+          (edge) => edge.source === taskId || edge.target === taskId
+        );
+        details.replaceChildren();
+        const title = document.createElement('strong');
+        title.textContent = task.title;
+        details.appendChild(title);
+        details.append(
+          `${task.subject || 'No subject'} · ${dependencies.length} connection${dependencies.length === 1 ? '' : 's'}`
+        );
+        renderGraph();
+      }
 
-      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-      defs.innerHTML = `
-        <marker id="arrowhead" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-          <path d="M0,0 L0,12 L12,6 z" fill="#94a3b8"></path>
-        </marker>
-      `;
-      svg.appendChild(defs);
+      function getNodePosition(taskId, index) {
+        if (nodePositions[taskId]) return nodePositions[taskId];
+        const column = index % 3;
+        const row = Math.floor(index / 3);
+        return { x: 150 + column * 260, y: 110 + row * 180 };
+      }
 
-      graphData.nodes.forEach((task) => {
-        const pos = nodePositions[task.id];
-        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        g.setAttribute('class', 'task-node');
+      function renderSidebar() {
+        sidebar.replaceChildren();
+        graphData.nodes.forEach((task) => {
+          const item = document.createElement('li');
+          item.className = `task-item${task.id === selectedTaskId ? ' selected' : ''}`;
+          item.tabIndex = 0;
+          item.innerHTML = `<h3></h3><div class="meta"></div><span class="status"></span>`;
+          item.querySelector('h3').textContent = task.title;
+          item.querySelector('.meta').textContent = task.subject || 'No subject';
+          const status = item.querySelector('.status');
+          status.textContent = task.task_type;
+          status.classList.add(task.task_type);
+          item.addEventListener('click', () => selectTask(task.id));
+          item.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') selectTask(task.id);
+          });
+          sidebar.appendChild(item);
+        });
+      }
 
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', pos.x);
-        circle.setAttribute('cy', pos.y);
-        circle.setAttribute('r', 46);
-        circle.setAttribute('fill', taskTypeColors[task.task_type] || '#64748b');
+      function renderGraph() {
+        svg.replaceChildren();
+        const defs = createSvgElement('defs');
+        const marker = createSvgElement('marker', {
+          id: 'arrowhead', markerWidth: 12, markerHeight: 12, refX: 10, refY: 6, orient: 'auto'
+        });
+        marker.appendChild(createSvgElement('path', { d: 'M0,0 L0,12 L12,6 z', fill: '#94a3b8' }));
+        defs.appendChild(marker);
+        svg.appendChild(defs);
 
-        const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        title.setAttribute('x', pos.x);
-        title.setAttribute('y', pos.y + 4);
-        title.setAttribute('text-anchor', 'middle');
-        title.textContent = task.title.split(' ')[0];
+        graphData.edges.forEach((edge) => {
+          const from = getNodePosition(edge.source, graphData.nodes.findIndex((node) => node.id === edge.source));
+          const to = getNodePosition(edge.target, graphData.nodes.findIndex((node) => node.id === edge.target));
+          const connected = selectedTaskId === null || edge.source === selectedTaskId || edge.target === selectedTaskId;
+          svg.appendChild(createSvgElement('line', {
+            x1: from.x, y1: from.y, x2: to.x, y2: to.y,
+            stroke: connected ? '#94a3b8' : '#dbe3f0', 'stroke-width': connected ? 2.5 : 1.5,
+            'stroke-linecap': 'round', 'marker-end': 'url(#arrowhead)', opacity: connected ? 0.9 : 0.35
+          }));
+          const label = createSvgElement('text', {
+            x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 - 10,
+            'text-anchor': 'middle', class: 'edge-label', opacity: connected ? 1 : 0.25
+          });
+          label.textContent = edge.reason || 'Dependency';
+          svg.appendChild(label);
+        });
 
-        const subtitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        subtitle.setAttribute('x', pos.x);
-        subtitle.setAttribute('y', pos.y + 24);
-        subtitle.setAttribute('text-anchor', 'middle');
-        subtitle.setAttribute('class', 'subtitle');
-        subtitle.textContent = task.subject;
+        graphData.nodes.forEach((task) => {
+          const pos = getNodePosition(task.id, graphData.nodes.indexOf(task));
+          const node = createSvgElement('g', { class: 'task-node', tabindex: 0, opacity: selectedTaskId === null || selectedTaskId === task.id ? 1 : 0.4 });
+          node.addEventListener('click', () => selectTask(task.id));
+          const circle = createSvgElement('circle', { cx: pos.x, cy: pos.y, r: 46, fill: taskTypeColors[task.task_type] || '#64748b' });
+          const title = createSvgElement('text', { x: pos.x, y: pos.y + 4, 'text-anchor': 'middle' });
+          title.textContent = task.title.split(' ')[0];
+          const subtitle = createSvgElement('text', { x: pos.x, y: pos.y + 24, 'text-anchor': 'middle', class: 'subtitle' });
+          subtitle.textContent = task.subject || '';
+          node.append(circle, title, subtitle);
+          svg.appendChild(node);
+        });
+        renderSidebar();
+      }
 
-        g.appendChild(circle);
-        g.appendChild(title);
-        g.appendChild(subtitle);
-        svg.appendChild(g);
-      });
+      async function loadGraph() {
+        generateButton.disabled = true;
+        message.textContent = 'Generating dependency graph...';
+        try {
+          const detectResponse = await fetch('/students/1/detect-dependencies', { method: 'POST' });
+          if (!detectResponse.ok) throw new Error('Dependency detection failed');
+          const graphResponse = await fetch('/students/1/dependency-graph');
+          if (!graphResponse.ok) throw new Error('Graph loading failed');
+          graphData = await graphResponse.json();
+          selectedTaskId = null;
+          message.textContent = `Live data · ${graphData.nodes.length} tasks · ${graphData.edges.length} connections`;
+          renderGraph();
+        } catch (error) {
+          message.textContent = 'API unavailable · showing demo data';
+          graphData = demoGraphData;
+          selectedTaskId = null;
+          renderGraph();
+        } finally {
+          generateButton.disabled = false;
+        }
+      }
+
+      generateButton.addEventListener('click', loadGraph);
+      renderGraph();
     </script>
   </body>
 </html>
