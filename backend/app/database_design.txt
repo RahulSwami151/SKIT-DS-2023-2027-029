@@ -1,0 +1,115 @@
+# Database Design — TIM (Task Interdependency Mapper)
+Project ID: SKIT/DS/2023-2027/029
+User Story: Database Design
+Owner: Parineeta Sharma (schema design/merge), Rahul Sevani (original Task/TaskDependency + dependency detection logic)
+Sprint dates: 12/9/26 – 29/9/26 (Form-2)
+
+## Week 1 (12/9 – 18/9) — Entity modeling & draft ER diagram
+- Drafted entity list from the Information Architecture handoff: User, Task, TaskDependency, JournalEntry, SORScore (computed)
+- Built initial attribute table and draft ER diagram (`DB_Entity_Attribute_Draft.xlsx`, `DB_ER_Diagram_Draft.png/svg`)
+- Superseded in Week 2/3 once merged against Rahul's actual existing code
+
+## Week 2 (19/9 – 25/9) — Merge, fix, test, commit
+- Discovered Rahul had already built `Task`/`TaskDependency` for his Dependency Detection story.
+- Rahul's existing implementation used different column names than the Week 1 draft: `student_id` instead of `user_id`.
+- Rahul's existing implementation used `prerequisite_task_id`/`reason` instead of `depends_on_task_id`/`relation_type`.
+- Rahul's existing implementation also contained a `task_type` enum that was not present in the original draft.
+- Merged rather than overwrote the existing implementation.
+- Kept 100% of Rahul's existing code and naming intact.
+- Added the `User` table because it did not exist previously.
+- Added the `JournalEntry` table because it did not exist previously.
+- Extended `Task` with `priority`.
+- Extended `Task` with `importance`.
+- Extended `Task` with `mood`.
+- Extended `Task` with `status`.
+- Extended `Task` with `sor_score`.
+- Extended `Task` with `updated_at`.
+- Added a real relationship: `Task.student_id` → `users.id` foreign key.
+- The `student_id` column previously existed as a bare, unconstrained integer.
+- Checked existing code for possible breakage after introducing the foreign key.
+- Reviewed `dependency_detector.py`.
+- Reviewed `persistence.py`.
+- Reviewed `api.py`.
+- Reviewed `main.py`.
+- Confirmed that none of the reviewed files create `Task` rows.
+- Confirmed that the new foreign key constraint carries zero risk to the existing task-creation code path.
+- Identified that SQLite local development does not enforce foreign keys by default.
+- Added `PRAGMA foreign_keys=ON` to `database.py`.
+- Verified through the actual `database.py` code path that an orphaned `student_id` is now correctly rejected.
+- Built `seed_and_test.py`.
+- Seeded realistic sample data with 2 users.
+- Seeded 5 tasks.
+- Seeded 2 task dependencies.
+- Seeded 2 journal entries.
+- Used the seed script to verify the database constraints.
+- Verified the priority range CHECK constraint.
+- Verified the duplicate-dependency UNIQUE constraint.
+- Verified the self-dependency CHECK constraint.
+- Confirmed that all 3 database constraint tests PASS.
+- Committed the work in 5 separate focused commits.
+- Created a gitignore commit.
+- Created a schema commit.
+- Created a foreign-key fix commit.
+- Created a seed-script commit.
+- Created an unrelated cleanup commit.
+- Pushed the completed commits to the repository.
+- Resolved a real merge conflict caused by Rahul's concurrent push.
+
+## Week 3 (26/9 – 29/9) — Final consistency pass & documentation
+- Corrected the ER diagram to match the actual merged schema.
+- Created `DB_ER_Diagram_Final.png`.
+- Created `DB_ER_Diagram_Final.svg`.
+- Identified that the Week 1 and Week 2 diagrams contained draft column names that no longer matched the repository schema.
+- Cross-checked the final schema against the IA content audit in `Screen_Inventory.xlsx`.
+- Found a missing `description` field during the consistency check.
+- The IA audit lists `description` as a captured field on Add/Edit Task.
+- No `description` column exists in the final `tasks` table.
+- Kept the `description` mismatch open for team discussion rather than making an unapproved schema change.
+- Found an undocumented `task_type` field during the consistency check.
+- `task_type` is required by the final schema.
+- `task_type` is used by `dependency_detector.py`.
+- `task_type` is required by the `TYPE_PRECEDENCE` logic.
+- `task_type` was not listed as a capturable field in the original Screen Inventory.
+- Identified the need to add `task_type` back to the IA documentation.
+- Finalized the documentation so the database schema and ER diagram are consistent.
+- Database Design progress: Week 1 100%.
+- Database Design progress: Week 2 100%.
+- Database Design progress: Week 3 100%.
+- One open item remains and is carried forward to the next story.
+
+## Open item carried to next story
+- Open item: `description` field.
+- The team needs to decide whether to add `description` to the database schema.
+- Alternatively, the team can update the Screen Inventory and remove `description` as a planned field.
+- Until the decision is made, `tasks.description` does not exist in the database.
+- The IA documentation currently implies that task descriptions are captured.
+- The database schema and IA documentation therefore have one unresolved mismatch.
+- This item is explicitly carried forward to the next story.
+
+## Final schema summary
+- `users` — Student accounts.
+- `tasks` — Student tasks containing title, deadline, subject, task_type, priority, importance, mood, status, and sor_score.
+- `tasks.student_id` → `users.id`.
+- `task_dependencies` — Self-referencing dependency edges between tasks.
+- `task_dependencies.task_id` → `tasks.id`.
+- `task_dependencies.prerequisite_task_id` → `tasks.id`.
+- `journal_entries` — Mood, stress, and energy check-ins.
+- `journal_entries.user_id` → `users.id`.
+
+## File index
+- `DB_Entity_Attribute_Draft.xlsx` — Week 1 draft; superseded by the final merged schema.
+- `DB_ER_Diagram_Draft.png` — Week 1 draft ER diagram; superseded.
+- `DB_ER_Diagram_Draft.svg` — Week 1 draft ER diagram; superseded.
+- `models.py` — Final merged database schema from Week 2.
+- `database.py` — Foreign-key enforcement fix from Week 2.
+- `seed_and_test.py` — Seed data and database constraint verification from Week 2.
+- `DB_ER_Diagram_Final.png` — Corrected final ER diagram from Week 3.
+- `DB_ER_Diagram_Final.svg` — Corrected final ER diagram from Week 3.
+- `README.md` — Database Design documentation and implementation record.
+
+## Handoff to Wireframing & Prototyping
+- The database schema is stable enough to design against.
+- There is one caveat regarding the unresolved `description` field.
+- Wireframes should not assume that task descriptions persist in the database until the `description` decision is finalized.
+- Any wireframe showing a description field on Task Detail should be marked provisional.
+- The next story, Wireframing & Prototyping, starts on 29/9/26.
