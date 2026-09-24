@@ -56,7 +56,7 @@ class Task(Base):
     __tablename__ = "tasks"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    student_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)  # FK added — see merge note
+    student_id = Column(Integer, nullable=False, index=True)
     title = Column(String(255), nullable=False)
     task_type = Column(SAEnum(TaskType), default=TaskType.OTHER, nullable=False)
     subject = Column(String(100), nullable=True)

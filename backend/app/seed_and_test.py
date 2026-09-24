@@ -10,12 +10,23 @@ Usage:
     python seed_and_test.py
 """
 
+import os
+import sys
 from datetime import datetime, timezone, timedelta
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 
-from models import Base, User, Task, TaskDependency, JournalEntry, TaskType
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+try:
+    from backend.app.models import Base, User, Task, TaskDependency, JournalEntry, TaskType
+except ModuleNotFoundError:  # pragma: no cover - allows direct script execution
+    from backend.app.models import Base, User, Task, TaskDependency, JournalEntry, TaskType
+
+__test__ = False
 
 DATABASE_URL = "sqlite:///./tim_dev.db"
 engine = create_engine(DATABASE_URL, echo=False, future=True)
