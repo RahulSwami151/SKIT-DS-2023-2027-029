@@ -63,8 +63,19 @@ def test_detect_dependencies_endpoint():
 
 
 def test_get_dependency_graph_endpoint():
+    seed_tasks()
+    detect_response = client.post("/students/1/detect-dependencies")
+    assert detect_response.status_code == 200
+
     response = client.get("/students/1/dependency-graph")
     assert response.status_code == 200
     data = response.json()
     assert "nodes" in data and "edges" in data
-    assert len(data["nodes"]) == 2
+    node_titles = {node["id"]: node["title"] for node in data["nodes"]}
+    assert "Read Ch.5" in node_titles.values()
+    assert "Assignment 2" in node_titles.values()
+    assert any(
+        node_titles[edge["source"]] == "Assignment 2"
+        and node_titles[edge["target"]] == "Read Ch.5"
+        for edge in data["edges"]
+    )
