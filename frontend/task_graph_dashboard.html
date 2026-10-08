@@ -241,6 +241,40 @@
         display: block;
         margin-bottom: 5px;
       }
+
+      .connection-group {
+        margin-top: 12px;
+      }
+
+      .connection-list {
+        display: grid;
+        gap: 6px;
+        margin: 6px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .connection-button {
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--primary);
+        font: inherit;
+        font-weight: 700;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .connection-button:hover,
+      .connection-button:focus-visible {
+        text-decoration: underline;
+      }
+
+      .connection-reason {
+        display: block;
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
     </style>
   </head>
   <body>
@@ -334,17 +368,62 @@
         const task = graphData.nodes.find((node) => node.id === taskId);
         if (!task) return;
 
-        const dependencies = graphData.edges.filter(
-          (edge) => edge.source === taskId || edge.target === taskId
-        );
         details.replaceChildren();
         const title = document.createElement('strong');
         title.textContent = task.title;
         details.appendChild(title);
-        details.append(
-          `${task.subject || 'No subject'} · ${dependencies.length} connection${dependencies.length === 1 ? '' : 's'}`
-        );
+        const summary = document.createElement('div');
+        summary.className = 'meta';
+        summary.textContent = `${task.subject || 'No subject'} · ${task.task_type}`;
+        details.appendChild(summary);
+
+        const prerequisites = graphData.edges
+          .filter((edge) => edge.source === taskId)
+          .map((edge) => ({ taskId: edge.target, reason: edge.reason }));
+        const dependents = graphData.edges
+          .filter((edge) => edge.target === taskId)
+          .map((edge) => ({ taskId: edge.source, reason: edge.reason }));
+        renderConnectionGroup('Prerequisites', prerequisites);
+        renderConnectionGroup('Tasks depending on this task', dependents);
         renderGraph();
+      }
+
+      function renderConnectionGroup(label, connections) {
+        const group = document.createElement('section');
+        group.className = 'connection-group';
+        const heading = document.createElement('strong');
+        heading.textContent = `${label} (${connections.length})`;
+        group.appendChild(heading);
+
+        if (connections.length === 0) {
+          const empty = document.createElement('div');
+          empty.className = 'meta';
+          empty.textContent = 'None';
+          group.appendChild(empty);
+        } else {
+          const list = document.createElement('ul');
+          list.className = 'connection-list';
+          connections.forEach(({ taskId, reason }) => {
+            const connectedTask = graphData.nodes.find((node) => node.id === taskId);
+            if (!connectedTask) return;
+            const item = document.createElement('li');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'connection-button';
+            button.textContent = connectedTask.title;
+            button.addEventListener('click', () => selectTask(taskId));
+            item.appendChild(button);
+            if (reason) {
+              const explanation = document.createElement('span');
+              explanation.className = 'connection-reason';
+              explanation.textContent = reason;
+              item.appendChild(explanation);
+            }
+            list.appendChild(item);
+          });
+          group.appendChild(list);
+        }
+        details.appendChild(group);
       }
 
       function getNodePosition(taskId, index) {
@@ -403,8 +482,21 @@
 
         graphData.nodes.forEach((task) => {
           const pos = getNodePosition(task.id, graphData.nodes.indexOf(task));
-          const node = createSvgElement('g', { class: 'task-node', tabindex: 0, opacity: selectedTaskId === null || selectedTaskId === task.id ? 1 : 0.4 });
+          const node = createSvgElement('g', {
+            class: 'task-node',
+            tabindex: 0,
+            role: 'button',
+            'aria-label': `Select ${task.title}`,
+            'aria-pressed': selectedTaskId === task.id,
+            opacity: selectedTaskId === null || selectedTaskId === task.id ? 1 : 0.4
+          });
           node.addEventListener('click', () => selectTask(task.id));
+          node.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              selectTask(task.id);
+            }
+          });
           const circle = createSvgElement('circle', { cx: pos.x, cy: pos.y, r: 46, fill: taskTypeColors[task.task_type] || '#64748b' });
           const title = createSvgElement('text', { x: pos.x, y: pos.y + 4, 'text-anchor': 'middle' });
           title.textContent = task.title.split(' ')[0];
