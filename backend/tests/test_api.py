@@ -44,6 +44,15 @@ app.dependency_overrides[get_session] = override_get_session
 client = TestClient(app)
 
 
+def test_dashboard_is_served_by_app():
+    for path in ("/", "/dashboard"):
+        response = client.get(path)
+
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/html")
+        assert "Task Dependency Graph" in response.text
+
+
 def seed_tasks():
     session = TestSession()
     reading = Task(student_id=1, title="Read Ch.5", task_type=TaskType.READING,
