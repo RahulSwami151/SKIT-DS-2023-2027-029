@@ -19,6 +19,10 @@ def build_dependency_graph(session: Session, student_id: int) -> nx.DiGraph:
             title=task.title,
             task_type=task.task_type.value,
             subject=task.subject,
+            deadline=task.deadline,
+            status=task.status,
+            priority=task.priority,
+            importance=task.importance,
         )
 
     dependencies = (

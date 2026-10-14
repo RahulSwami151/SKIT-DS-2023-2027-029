@@ -47,9 +47,11 @@ client = TestClient(app)
 def seed_tasks():
     session = TestSession()
     reading = Task(student_id=1, title="Read Ch.5", task_type=TaskType.READING,
-                    subject="DBMS", deadline=datetime.utcnow() + timedelta(days=1))
+                    subject="DBMS", deadline=datetime.utcnow() + timedelta(days=1),
+                    status="in_progress", priority=4, importance=5)
     assignment = Task(student_id=1, title="Assignment 2", task_type=TaskType.ASSIGNMENT,
-                       subject="DBMS", deadline=datetime.utcnow() + timedelta(days=3))
+                       subject="DBMS", deadline=datetime.utcnow() + timedelta(days=3),
+                       status="pending", priority=3, importance=4)
     session.add_all([reading, assignment])
     session.commit()
     session.close()
@@ -74,6 +76,11 @@ def test_get_dependency_graph_endpoint():
     node_titles = {node["id"]: node["title"] for node in data["nodes"]}
     assert "Read Ch.5" in node_titles.values()
     assert "Assignment 2" in node_titles.values()
+    reading = next(node for node in data["nodes"] if node["title"] == "Read Ch.5")
+    assert reading["deadline"] is not None
+    assert reading["status"] == "in_progress"
+    assert reading["priority"] == 4
+    assert reading["importance"] == 5
     assert any(
         node_titles[edge["source"]] == "Assignment 2"
         and node_titles[edge["target"]] == "Read Ch.5"

@@ -242,6 +242,22 @@
         margin-bottom: 5px;
       }
 
+      .task-metadata {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 4px 10px;
+        margin: 10px 0 0;
+      }
+
+      .task-metadata dt {
+        color: var(--muted);
+      }
+
+      .task-metadata dd {
+        margin: 0;
+        font-weight: 600;
+      }
+
       .connection-group {
         margin-top: 12px;
       }
@@ -318,11 +334,11 @@
     <script>
       const demoGraphData = {
         nodes: [
-          { id: 1, title: 'Read Ch.5', task_type: 'reading', subject: 'DBMS' },
-          { id: 2, title: 'DBMS Assignment', task_type: 'assignment', subject: 'DBMS' },
-          { id: 3, title: 'Project Proposal', task_type: 'project', subject: 'AI' },
-          { id: 4, title: 'Quiz Revision', task_type: 'quiz', subject: 'ML' },
-          { id: 5, title: 'Final Review', task_type: 'exam', subject: 'CS' }
+          { id: 1, title: 'Read Ch.5', task_type: 'reading', subject: 'DBMS', deadline: '2026-10-15T09:00:00', status: 'completed', priority: 3, importance: 4 },
+          { id: 2, title: 'DBMS Assignment', task_type: 'assignment', subject: 'DBMS', deadline: '2026-10-18T17:00:00', status: 'in_progress', priority: 4, importance: 5 },
+          { id: 3, title: 'Project Proposal', task_type: 'project', subject: 'AI', deadline: '2026-10-20T17:00:00', status: 'pending', priority: 5, importance: 4 },
+          { id: 4, title: 'Quiz Revision', task_type: 'quiz', subject: 'ML', deadline: null, status: 'pending', priority: null, importance: null },
+          { id: 5, title: 'Final Review', task_type: 'exam', subject: 'CS', deadline: '2026-10-26T09:00:00', status: 'pending', priority: 5, importance: 5 }
         ],
         edges: [
           { source: 2, target: 1, reason: 'Needs reading summary' },
@@ -376,6 +392,7 @@
         summary.className = 'meta';
         summary.textContent = `${task.subject || 'No subject'} · ${task.task_type}`;
         details.appendChild(summary);
+        renderTaskMetadata(task);
 
         const prerequisites = graphData.edges
           .filter((edge) => edge.source === taskId)
@@ -386,6 +403,29 @@
         renderConnectionGroup('Prerequisites', prerequisites);
         renderConnectionGroup('Tasks depending on this task', dependents);
         renderGraph();
+      }
+
+      function renderTaskMetadata(task) {
+        const metadata = document.createElement('dl');
+        metadata.className = 'task-metadata';
+        const deadline = task.deadline
+          ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(task.deadline))
+          : 'Not set';
+        const values = [
+          ['Deadline', deadline],
+          ['Status', task.status ? task.status.replaceAll('_', ' ') : 'Not set'],
+          ['Priority', task.priority ?? 'Not set'],
+          ['Importance', task.importance ?? 'Not set']
+        ];
+
+        values.forEach(([label, value]) => {
+          const term = document.createElement('dt');
+          term.textContent = label;
+          const description = document.createElement('dd');
+          description.textContent = value;
+          metadata.append(term, description);
+        });
+        details.appendChild(metadata);
       }
 
       function renderConnectionGroup(label, connections) {
