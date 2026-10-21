@@ -114,10 +114,14 @@
       }
 
       .task-item {
+        width: 100%;
         padding: 14px 12px;
         border-radius: 14px;
         border: 1px solid var(--line);
         background: white;
+        color: inherit;
+        font: inherit;
+        text-align: left;
         cursor: pointer;
         transition: border-color 160ms ease, transform 160ms ease;
       }
@@ -126,6 +130,11 @@
       .task-item.selected {
         border-color: var(--primary);
         transform: translateX(3px);
+      }
+
+      .task-item:focus-visible {
+        outline: 3px solid var(--primary);
+        outline-offset: 2px;
       }
 
       .task-item h3 {
@@ -151,6 +160,8 @@
       .status.assignment { background: #dcfce7; color: #15803d; }
       .status.project { background: #fef3c7; color: #b45309; }
       .status.quiz { background: #fce7f3; color: #9d174d; }
+      .status.exam { background: #ede9fe; color: #6d28d9; }
+      .status.other { background: #e5e7eb; color: #374151; }
 
       .graph-panel {
         position: relative;
@@ -291,6 +302,44 @@
         color: var(--muted);
         font-size: 0.78rem;
       }
+
+      @media (max-width: 800px) {
+        .page {
+          margin: 12px auto;
+          padding: 12px;
+        }
+
+        .dashboard {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .task-list {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        }
+
+        .graph-box {
+          height: min(520px, 65vh);
+          min-height: 320px;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .header,
+        .toolbar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        h1 {
+          font-size: 1.6rem;
+        }
+      }
     </style>
   </head>
   <body>
@@ -313,7 +362,7 @@
         <div class="dashboard">
           <aside class="sidebar">
             <ul class="task-list" id="taskList"></ul>
-            <div class="task-details" id="taskDetails">Select a task to inspect its connections.</div>
+            <div class="task-details" id="taskDetails" aria-label="Selected task details" aria-live="polite">Select a task to inspect its connections.</div>
           </aside>
 
           <main class="graph-panel">
@@ -324,7 +373,7 @@
             </div>
 
             <div class="graph-box">
-              <svg id="graphSvg" viewBox="0 0 820 500" preserveAspectRatio="xMidYMid meet"></svg>
+              <svg id="graphSvg" viewBox="0 0 820 500" preserveAspectRatio="xMidYMid meet" role="group" aria-label="Task dependency graph"></svg>
             </div>
           </main>
         </div>
@@ -355,14 +404,6 @@
         project: '#f59e0b',
         quiz: '#ec4899',
         exam: '#8b5cf6'
-      };
-
-      const nodePositions = {
-        1: { x: 200, y: 150 },
-        2: { x: 420, y: 120 },
-        3: { x: 640, y: 210 },
-        4: { x: 300, y: 330 },
-        5: { x: 560, y: 360 }
       };
 
       const sidebar = document.getElementById('taskList');
@@ -466,35 +507,53 @@
         details.appendChild(group);
       }
 
-      function getNodePosition(taskId, index) {
-        if (nodePositions[taskId]) return nodePositions[taskId];
-        const column = index % 3;
-        const row = Math.floor(index / 3);
-        return { x: 150 + column * 260, y: 110 + row * 180 };
+      function getNodePosition(index, nodeCount) {
+        if (nodeCount === 1) return { x: 410, y: 250 };
+        if (nodeCount === 2) return { x: index === 0 ? 160 : 660, y: 250 };
+        const angle = -Math.PI / 2 + (index * 2 * Math.PI) / nodeCount;
+        return {
+          x: 410 + 300 * Math.cos(angle),
+          y: 250 + 165 * Math.sin(angle)
+        };
       }
 
       function renderSidebar() {
         sidebar.replaceChildren();
         graphData.nodes.forEach((task) => {
           const item = document.createElement('li');
-          item.className = `task-item${task.id === selectedTaskId ? ' selected' : ''}`;
-          item.tabIndex = 0;
-          item.innerHTML = `<h3></h3><div class="meta"></div><span class="status"></span>`;
-          item.querySelector('h3').textContent = task.title;
-          item.querySelector('.meta').textContent = task.subject || 'No subject';
-          const status = item.querySelector('.status');
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = `task-item${task.id === selectedTaskId ? ' selected' : ''}`;
+          button.setAttribute('aria-pressed', String(task.id === selectedTaskId));
+          const title = document.createElement('h3');
+          title.textContent = task.title;
+          const subject = document.createElement('div');
+          subject.className = 'meta';
+          subject.textContent = task.subject || 'No subject';
+          const status = document.createElement('span');
+          status.className = 'status';
           status.textContent = task.task_type;
-          status.classList.add(task.task_type);
-          item.addEventListener('click', () => selectTask(task.id));
-          item.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter' || event.key === ' ') selectTask(task.id);
-          });
+          status.classList.add(task.task_type || 'other');
+          button.append(title, subject, status);
+          button.addEventListener('click', () => selectTask(task.id));
+          item.appendChild(button);
           sidebar.appendChild(item);
         });
       }
 
       function renderGraph() {
         svg.replaceChildren();
+        if (graphData.nodes.length === 0) {
+          const emptyState = createSvgElement('text', {
+            x: 410, y: 250, 'text-anchor': 'middle', class: 'edge-label'
+          });
+          emptyState.textContent = 'No tasks found for this student.';
+          svg.appendChild(emptyState);
+          sidebar.replaceChildren();
+          details.textContent = 'No tasks are available to inspect.';
+          return;
+        }
+
         const defs = createSvgElement('defs');
         const marker = createSvgElement('marker', {
           id: 'arrowhead', markerWidth: 12, markerHeight: 12, refX: 10, refY: 6, orient: 'auto'
@@ -504,11 +563,18 @@
         svg.appendChild(defs);
 
         graphData.edges.forEach((edge) => {
-          const from = getNodePosition(edge.source, graphData.nodes.findIndex((node) => node.id === edge.source));
-          const to = getNodePosition(edge.target, graphData.nodes.findIndex((node) => node.id === edge.target));
+          const sourceIndex = graphData.nodes.findIndex((node) => node.id === edge.source);
+          const targetIndex = graphData.nodes.findIndex((node) => node.id === edge.target);
+          if (sourceIndex === -1 || targetIndex === -1) return;
+          const from = getNodePosition(sourceIndex, graphData.nodes.length);
+          const to = getNodePosition(targetIndex, graphData.nodes.length);
+          const distance = Math.hypot(to.x - from.x, to.y - from.y);
+          const unitX = (to.x - from.x) / distance;
+          const unitY = (to.y - from.y) / distance;
           const connected = selectedTaskId === null || edge.source === selectedTaskId || edge.target === selectedTaskId;
           svg.appendChild(createSvgElement('line', {
-            x1: from.x, y1: from.y, x2: to.x, y2: to.y,
+            x1: from.x + unitX * 49, y1: from.y + unitY * 49,
+            x2: to.x - unitX * 49, y2: to.y - unitY * 49,
             stroke: connected ? '#94a3b8' : '#dbe3f0', 'stroke-width': connected ? 2.5 : 1.5,
             'stroke-linecap': 'round', 'marker-end': 'url(#arrowhead)', opacity: connected ? 0.9 : 0.35
           }));
@@ -521,7 +587,8 @@
         });
 
         graphData.nodes.forEach((task) => {
-          const pos = getNodePosition(task.id, graphData.nodes.indexOf(task));
+          const index = graphData.nodes.indexOf(task);
+          const pos = getNodePosition(index, graphData.nodes.length);
           const node = createSvgElement('g', {
             class: 'task-node',
             tabindex: 0,
@@ -530,6 +597,8 @@
             'aria-pressed': selectedTaskId === task.id,
             opacity: selectedTaskId === null || selectedTaskId === task.id ? 1 : 0.4
           });
+          const accessibleTitle = createSvgElement('title');
+          accessibleTitle.textContent = task.title;
           node.addEventListener('click', () => selectTask(task.id));
           node.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' || event.key === ' ') {
@@ -542,7 +611,7 @@
           title.textContent = task.title.split(' ')[0];
           const subtitle = createSvgElement('text', { x: pos.x, y: pos.y + 24, 'text-anchor': 'middle', class: 'subtitle' });
           subtitle.textContent = task.subject || '';
-          node.append(circle, title, subtitle);
+          node.append(accessibleTitle, circle, title, subtitle);
           svg.appendChild(node);
         });
         renderSidebar();
@@ -553,18 +622,20 @@
         message.textContent = 'Generating dependency graph...';
         try {
           const detectResponse = await fetch('/students/1/detect-dependencies', { method: 'POST' });
-          if (!detectResponse.ok) throw new Error('Dependency detection failed');
+          if (!detectResponse.ok) throw new Error(`Dependency detection failed (${detectResponse.status})`);
           const graphResponse = await fetch('/students/1/dependency-graph');
-          if (!graphResponse.ok) throw new Error('Graph loading failed');
-          graphData = await graphResponse.json();
+          if (!graphResponse.ok) throw new Error(`Graph loading failed (${graphResponse.status})`);
+          const nextGraph = await graphResponse.json();
+          if (!Array.isArray(nextGraph.nodes) || !Array.isArray(nextGraph.edges)) {
+            throw new Error('The server returned an invalid dependency graph');
+          }
+          graphData = nextGraph;
           selectedTaskId = null;
           message.textContent = `Live data · ${graphData.nodes.length} tasks · ${graphData.edges.length} connections`;
           renderGraph();
         } catch (error) {
-          message.textContent = 'API unavailable · showing demo data';
-          graphData = demoGraphData;
-          selectedTaskId = null;
-          renderGraph();
+          const reason = error instanceof Error ? error.message : String(error);
+          message.textContent = `Unable to load live graph: ${reason}. The current graph is unchanged.`;
         } finally {
           generateButton.disabled = false;
         }
