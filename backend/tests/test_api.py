@@ -7,7 +7,6 @@ Week 3 tests for the FastAPI dependency-detection endpoints.
 import sys, os , sqlalchemy
 import fastapi
 import sqlalchemy.orm
-
 from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
