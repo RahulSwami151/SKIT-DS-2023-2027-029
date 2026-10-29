@@ -89,6 +89,11 @@ def test_get_dependency_graph_endpoint():
     assert reading["status"] == "in_progress"
     assert reading["priority"] == 4
     assert reading["importance"] == 5
+    for node in data["nodes"]:
+        assert node["structural_impact"] == sum(
+            edge["target"] == node["id"] for edge in data["edges"]
+        )
+    assert reading["structural_impact"] > 0
     assert any(
         node_titles[edge["source"]] == "Assignment 2"
         and node_titles[edge["target"]] == "Read Ch.5"

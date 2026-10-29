@@ -46,7 +46,11 @@ def build_dependency_graph(session: Session, student_id: int) -> nx.DiGraph:
 def export_graph_for_frontend(graph: nx.DiGraph) -> Dict[str, Any]:
     return {
         "nodes": [
-            {"id": node_id, **attributes}
+            {
+                "id": node_id,
+                **attributes,
+                "structural_impact": graph.in_degree(node_id),
+            }
             for node_id, attributes in graph.nodes(data=True)
         ],
         "edges": [

@@ -383,11 +383,11 @@
     <script>
       const demoGraphData = {
         nodes: [
-          { id: 1, title: 'Read Ch.5', task_type: 'reading', subject: 'DBMS', deadline: '2026-10-15T09:00:00', status: 'completed', priority: 3, importance: 4 },
-          { id: 2, title: 'DBMS Assignment', task_type: 'assignment', subject: 'DBMS', deadline: '2026-10-18T17:00:00', status: 'in_progress', priority: 4, importance: 5 },
-          { id: 3, title: 'Project Proposal', task_type: 'project', subject: 'AI', deadline: '2026-10-20T17:00:00', status: 'pending', priority: 5, importance: 4 },
-          { id: 4, title: 'Quiz Revision', task_type: 'quiz', subject: 'ML', deadline: null, status: 'pending', priority: null, importance: null },
-          { id: 5, title: 'Final Review', task_type: 'exam', subject: 'CS', deadline: '2026-10-26T09:00:00', status: 'pending', priority: 5, importance: 5 }
+          { id: 1, title: 'Read Ch.5', task_type: 'reading', subject: 'DBMS', deadline: '2026-10-15T09:00:00', status: 'completed', priority: 3, importance: 4, structural_impact: 3 },
+          { id: 2, title: 'DBMS Assignment', task_type: 'assignment', subject: 'DBMS', deadline: '2026-10-18T17:00:00', status: 'in_progress', priority: 4, importance: 5, structural_impact: 1 },
+          { id: 3, title: 'Project Proposal', task_type: 'project', subject: 'AI', deadline: '2026-10-20T17:00:00', status: 'pending', priority: 5, importance: 4, structural_impact: 1 },
+          { id: 4, title: 'Quiz Revision', task_type: 'quiz', subject: 'ML', deadline: null, status: 'pending', priority: null, importance: null, structural_impact: 0 },
+          { id: 5, title: 'Final Review', task_type: 'exam', subject: 'CS', deadline: '2026-10-26T09:00:00', status: 'pending', priority: 5, importance: 5, structural_impact: 0 }
         ],
         edges: [
           { source: 2, target: 1, reason: 'Needs reading summary' },
@@ -456,7 +456,8 @@
           ['Deadline', deadline],
           ['Status', task.status ? task.status.replaceAll('_', ' ') : 'Not set'],
           ['Priority', task.priority ?? 'Not set'],
-          ['Importance', task.importance ?? 'Not set']
+          ['Importance', task.importance ?? 'Not set'],
+          ['Structural impact (direct dependents)', task.structural_impact ?? 'Not available']
         ];
 
         values.forEach(([label, value]) => {
