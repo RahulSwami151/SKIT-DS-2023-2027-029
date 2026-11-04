@@ -6,6 +6,7 @@ import networkx as nx
 from sqlalchemy.orm import Session
 
 from .models import Task, TaskDependency
+from .sor_scoring import calculate_sor_score
 
 
 def build_dependency_graph(session: Session, student_id: int) -> nx.DiGraph:
@@ -23,6 +24,7 @@ def build_dependency_graph(session: Session, student_id: int) -> nx.DiGraph:
             status=task.status,
             priority=task.priority,
             importance=task.importance,
+            mood=task.mood,
         )
 
     dependencies = (
@@ -50,6 +52,13 @@ def export_graph_for_frontend(graph: nx.DiGraph) -> Dict[str, Any]:
                 "id": node_id,
                 **attributes,
                 "structural_impact": graph.in_degree(node_id),
+                **calculate_sor_score(
+                    importance=attributes["importance"],
+                    priority=attributes["priority"],
+                    deadline=attributes["deadline"],
+                    mood=attributes["mood"],
+                    structural_impact=graph.in_degree(node_id),
+                ),
             }
             for node_id, attributes in graph.nodes(data=True)
         ],

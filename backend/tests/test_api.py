@@ -19,6 +19,7 @@ from sqlalchemy.pool import StaticPool
 from backend.app.models import Base, Task, TaskType
 from backend.app.main import app
 from backend.app.database import get_session
+from backend.app.sor_scoring import calculate_sor_score
 
 # StaticPool keeps the SAME in-memory SQLite connection alive across
 # sessions in this test module.
@@ -99,3 +100,65 @@ def test_get_dependency_graph_endpoint():
         and node_titles[edge["target"]] == "Read Ch.5"
         for edge in data["edges"]
     )
+    assert reading["sor_score"] is not None
+    assert reading["sor_components"]["importance"] == 5
+    assert reading["sor_components"]["structural_impact"] > 0
+    assert reading["sor_components"]["overload_association"] == 4
+    assert reading["sor_components"]["feasibility_relief"] == 0
+
+
+def test_sor_score_combines_importance_priority_deadline_and_mood_relief():
+    now = datetime(2026, 11, 4)
+    score = calculate_sor_score(
+        importance=4,
+        priority=3,
+        deadline=now + timedelta(days=1),
+        mood="good",
+        structural_impact=2,
+        now=now,
+    )
+
+    assert score == {
+        "sor_score": 6.5,
+        "sor_components": {
+            "structural_impact": 2,
+            "importance": 4,
+            "structural_score": 6,
+            "overload_association": 3,
+            "deadline_pressure": 2.5,
+            "feasibility_relief": 5,
+        },
+    }
+
+
+def test_sor_score_handles_missing_optional_inputs():
+    score = calculate_sor_score(
+        importance=None,
+        priority=None,
+        deadline=None,
+        mood=None,
+        structural_impact=0,
+        now=datetime(2026, 11, 4),
+    )
+
+    assert score["sor_score"] == 0
+    assert score["sor_components"]["deadline_pressure"] == 0
+    assert score["sor_components"]["feasibility_relief"] == 0
+
+
+def test_dependency_graph_reports_unsupported_mood():
+    session = TestSession()
+    session.add(
+        Task(
+            student_id=2,
+            title="Task with unrecognized mood",
+            task_type=TaskType.OTHER,
+            mood="unknown",
+        )
+    )
+    session.commit()
+    session.close()
+
+    response = client.get("/students/2/dependency-graph")
+    assert response.status_code == 422
+    assert "Unsupported mood" in response.json()["detail"]

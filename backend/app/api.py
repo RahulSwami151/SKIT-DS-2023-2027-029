@@ -6,7 +6,7 @@ Week 3 (final 30%) — FastAPI endpoints exposing dependency detection
 and graph data to the frontend.
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from .database import get_session
@@ -27,4 +27,7 @@ def detect_dependencies_endpoint(student_id: int, session: Session = Depends(get
 def get_dependency_graph_endpoint(student_id: int, session: Session = Depends(get_session)):
     """Returns the student's dependency graph as {nodes, edges} for the frontend."""
     graph = build_dependency_graph(session, student_id)
-    return export_graph_for_frontend(graph)
+    try:
+        return export_graph_for_frontend(graph)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
