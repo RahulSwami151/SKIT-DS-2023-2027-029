@@ -18,9 +18,9 @@ importances = {
 }
 
 
-def _structural_impact_value(importance: Optional[Union[int, str]]) -> int:
+def _structural_impact_value(importance: Union[int, str]) -> int:
     if importance is None:
-        return 0
+        raise ValueError("Structural impact is required.")
     if isinstance(importance, str):
         label = importance.strip().title()
         if label in importances:
@@ -38,9 +38,9 @@ def _structural_impact_value(importance: Optional[Union[int, str]]) -> int:
     return importance
 
 
-def _deadline_pressure(deadline: Optional[datetime], now: datetime) -> float:
+def _deadline_pressure(deadline: datetime, now: datetime) -> float:
     if deadline is None:
-        return 0.0
+        raise ValueError("Deadline is required.")
 
     if deadline.tzinfo is None:
         deadline = deadline.replace(tzinfo=timezone.utc)
@@ -55,26 +55,30 @@ def _deadline_pressure(deadline: Optional[datetime], now: datetime) -> float:
 
 def calculate_sor_score(
     *,
-    importance: Optional[Union[int, str]],
+    importance: Union[int, str],
     overload_association: int,
-    deadline: Optional[datetime],
-    mood: Optional[str],
+    deadline: datetime,
+    mood: str,
     now: Optional[datetime] = None,
 ) -> Dict[str, Any]:
     """Return a live score and its component values for one task."""
-    mood_label = mood.strip().lower() if mood else None
-    if mood_label is not None and mood_label not in MOOD_RELIEF:
+    if not mood or not mood.strip():
+        raise ValueError("Mood is required.")
+    mood_label = mood.strip().lower()
+    if mood_label not in MOOD_RELIEF:
         allowed_moods = ", ".join(sorted(MOOD_RELIEF))
         raise ValueError(
             f"Unsupported mood '{mood}'. Expected one of: {allowed_moods}."
         )
 
+    if overload_association is None:
+        raise ValueError("Overload association is required.")
     if overload_association < 0:
         raise ValueError("Overload association cannot be negative.")
 
     current_time = now or datetime.now(timezone.utc)
     deadline_score = _deadline_pressure(deadline, current_time)
-    mood_relief = MOOD_RELIEF[mood_label] if mood_label else 0
+    mood_relief = MOOD_RELIEF[mood_label]
     structural_score = _structural_impact_value(importance)
     score = structural_score + overload_association + deadline_score - mood_relief
 

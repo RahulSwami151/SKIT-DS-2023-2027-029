@@ -8,6 +8,7 @@ import sys, os , sqlalchemy
 import fastapi
 import sqlalchemy.orm
 from datetime import datetime, timedelta
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -59,10 +60,10 @@ def seed_tasks():
     session = TestSession()
     reading = Task(student_id=1, title="Read Ch.5", task_type=TaskType.READING,
                     subject="DBMS", deadline=datetime.utcnow() + timedelta(days=1),
-                    status="in_progress", priority=4, importance=5)
+                    status="in_progress", priority=4, importance=5, mood="good")
     assignment = Task(student_id=1, title="Assignment 2", task_type=TaskType.ASSIGNMENT,
                        subject="DBMS", deadline=datetime.utcnow() + timedelta(days=3),
-                       status="pending", priority=3, importance=4)
+                       status="pending", priority=3, importance=4, mood="neutral")
     session.add_all([reading, assignment])
     session.commit()
     session.close()
@@ -102,7 +103,7 @@ def test_get_dependency_graph_endpoint():
     assert reading["sor_score"] is not None
     assert reading["sor_components"]["structural_impact"] == 5
     assert reading["sor_components"]["overload_association"] == 0
-    assert reading["sor_components"]["feasibility_relief"] == 0
+    assert reading["sor_components"]["feasibility_relief"] == 4
 
 
 def test_sor_score_combines_structural_impact_overload_deadline_and_mood():
@@ -126,18 +127,25 @@ def test_sor_score_combines_structural_impact_overload_deadline_and_mood():
     }
 
 
-def test_sor_score_handles_missing_optional_inputs():
-    score = calculate_sor_score(
-        importance=None,
-        overload_association=0,
-        deadline=None,
-        mood=None,
-        now=datetime(2026, 11, 4),
-    )
+def test_sor_score_rejects_missing_required_inputs():
+    inputs = {
+        "importance": "Med",
+        "overload_association": 0,
+        "deadline": datetime(2026, 11, 5),
+        "mood": "good",
+        "now": datetime(2026, 11, 4),
+    }
+    required_inputs = {
+        "importance": "Structural impact is required.",
+        "deadline": "Deadline is required.",
+        "mood": "Mood is required.",
+        "overload_association": "Overload association is required.",
+    }
 
-    assert score["sor_score"] == 0
-    assert score["sor_components"]["deadline_pressure"] == 0
-    assert score["sor_components"]["feasibility_relief"] == 0
+    for field, message in required_inputs.items():
+        missing_input = {**inputs, field: None}
+        with pytest.raises(ValueError, match=message):
+            calculate_sor_score(**missing_input)
 
 
 def test_completed_prerequisite_reduces_downstream_overload():
@@ -173,6 +181,8 @@ def test_dependency_graph_reports_unsupported_mood():
             student_id=2,
             title="Task with unrecognized mood",
             task_type=TaskType.OTHER,
+            importance=1,
+            deadline=datetime.utcnow(),
             mood="unknown",
         )
     )
@@ -182,3 +192,22 @@ def test_dependency_graph_reports_unsupported_mood():
     response = client.get("/students/2/dependency-graph")
     assert response.status_code == 422
     assert "Unsupported mood" in response.json()["detail"]
+
+
+def test_dependency_graph_rejects_missing_sor_inputs():
+    session = TestSession()
+    session.add(
+        Task(
+            student_id=3,
+            title="Task without a deadline",
+            task_type=TaskType.OTHER,
+            importance=1,
+            mood="good",
+        )
+    )
+    session.commit()
+    session.close()
+
+    response = client.get("/students/3/dependency-graph")
+    assert response.status_code == 422
+    assert "Deadline is required." in response.json()["detail"]

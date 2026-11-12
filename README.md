@@ -18,12 +18,13 @@ The score uses three task inputs and one dependency-derived factor:
   prerequisite tasks in the task's dependency chain. The dependency graph is
   traversed prerequisite-first; a completed task and its prerequisite chain no
   longer contribute to downstream overload.
-- `D(v)`: deadline pressure, 0 with no deadline, 5 when due/overdue, and otherwise
+- `D(v)`: deadline pressure, 5 when due/overdue, and otherwise
   `5 / (1 + days remaining)`, capped at 5.
 - `P(v)`: mood-based feasibility relief subtracted from the score. Mood labels map
   to `high energy=5`, `good=4`, `neutral=3`, `fatigued=2`, and `overwhelmed=1`.
-  Missing optional inputs contribute 0; unsupported mood labels and cyclic
-  dependency graphs are reported as API validation errors.
+  Structural impact, overload, deadline, and mood are all required; missing or
+  unsupported values and cyclic dependency graphs are reported as API validation
+  errors.
 
 The dashboard displays the score and factor breakdown and orders its task list from
 highest to lowest SOR score. Scores are computed from current task status and graph
