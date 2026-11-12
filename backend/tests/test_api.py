@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 import networkx as nx
@@ -60,10 +61,10 @@ def seed_tasks():
     session = TestSession()
     reading = Task(student_id=1, title="Read Ch.5", task_type=TaskType.READING,
                     subject="DBMS", deadline=datetime.utcnow() + timedelta(days=1),
-                    status="in_progress", priority=4, importance=5, mood="good")
+                    status="in_progress", priority=4, importance="High", mood="good")
     assignment = Task(student_id=1, title="Assignment 2", task_type=TaskType.ASSIGNMENT,
                        subject="DBMS", deadline=datetime.utcnow() + timedelta(days=3),
-                       status="pending", priority=3, importance=4, mood="neutral")
+                       status="pending", priority=3, importance="Med", mood="neutral")
     session.add_all([reading, assignment])
     session.commit()
     session.close()
@@ -92,16 +93,18 @@ def test_get_dependency_graph_endpoint():
     assert reading["deadline"] is not None
     assert reading["status"] == "in_progress"
     assert reading["priority"] == 4
-    assert reading["importance"] == 5
+    assert reading["importance"] == "High"
     for node in data["nodes"]:
-        assert node["structural_impact"] == node["importance"]
+        assert node["structural_impact"] == {"High": 3, "Med": 2, "Low": 1}[
+            node["importance"]
+        ]
     assert any(
         node_titles[edge["source"]] == "Assignment 2"
         and node_titles[edge["target"]] == "Read Ch.5"
         for edge in data["edges"]
     )
     assert reading["sor_score"] is not None
-    assert reading["sor_components"]["structural_impact"] == 5
+    assert reading["sor_components"]["structural_impact"] == 3
     assert reading["sor_components"]["overload_association"] == 0
     assert reading["sor_components"]["feasibility_relief"] == 4
 
@@ -148,6 +151,26 @@ def test_sor_score_rejects_missing_required_inputs():
             calculate_sor_score(**missing_input)
 
 
+def test_tasks_require_all_sor_inputs():
+    required_fields = ("deadline", "importance", "mood")
+    session = TestSession()
+    for field in required_fields:
+        task_values = {
+            "student_id": 4,
+            "title": f"Task missing {field}",
+            "task_type": TaskType.OTHER,
+            "deadline": datetime(2026, 11, 5),
+            "importance": "High",
+            "mood": "good",
+        }
+        task_values[field] = None
+        session.add(Task(**task_values))
+        with pytest.raises(IntegrityError):
+            session.commit()
+        session.rollback()
+    session.close()
+
+
 def test_completed_prerequisite_reduces_downstream_overload():
     graph = nx.DiGraph()
     graph.add_nodes_from([
@@ -181,7 +204,7 @@ def test_dependency_graph_reports_unsupported_mood():
             student_id=2,
             title="Task with unrecognized mood",
             task_type=TaskType.OTHER,
-            importance=1,
+            importance="Low",
             deadline=datetime.utcnow(),
             mood="unknown",
         )
@@ -192,22 +215,3 @@ def test_dependency_graph_reports_unsupported_mood():
     response = client.get("/students/2/dependency-graph")
     assert response.status_code == 422
     assert "Unsupported mood" in response.json()["detail"]
-
-
-def test_dependency_graph_rejects_missing_sor_inputs():
-    session = TestSession()
-    session.add(
-        Task(
-            student_id=3,
-            title="Task without a deadline",
-            task_type=TaskType.OTHER,
-            importance=1,
-            mood="good",
-        )
-    )
-    session.commit()
-    session.close()
-
-    response = client.get("/students/3/dependency-graph")
-    assert response.status_code == 422
-    assert "Deadline is required." in response.json()["detail"]

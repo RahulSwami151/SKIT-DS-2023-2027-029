@@ -1,5 +1,6 @@
 """Build dependency graph data for the frontend."""
 
+from datetime import datetime, timezone
 from typing import Any, Dict, Set
 
 import networkx as nx
@@ -69,6 +70,7 @@ def build_dependency_graph(session: Session, student_id: int) -> nx.DiGraph:
 
 def export_graph_for_frontend(graph: nx.DiGraph) -> Dict[str, Any]:
     overload_associations = calculate_overload_associations(graph)
+    now = datetime.now(timezone.utc)
     nodes = []
     for node_id, attributes in graph.nodes(data=True):
         score = calculate_sor_score(
@@ -76,6 +78,7 @@ def export_graph_for_frontend(graph: nx.DiGraph) -> Dict[str, Any]:
             overload_association=overload_associations[node_id],
             deadline=attributes["deadline"],
             mood=attributes["mood"],
+            now=now,
         )
         nodes.append(
             {

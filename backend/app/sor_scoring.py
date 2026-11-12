@@ -1,7 +1,7 @@
 """Compute Structural Overload Relief scores for academic tasks."""
 
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict
 
 MOOD_RELIEF = {
     "high energy": 5,
@@ -18,24 +18,18 @@ importances = {
 }
 
 
-def _structural_impact_value(importance: Union[int, str]) -> int:
-    if importance is None:
+def _structural_impact_value(importance: str) -> int:
+    if not isinstance(importance, str) or not importance.strip():
         raise ValueError("Structural impact is required.")
-    if isinstance(importance, str):
-        label = importance.strip().title()
-        if label in importances:
-            return importances[label]
-        try:
-            importance = int(label)
-        except ValueError as exc:
-            allowed = ", ".join(importances)
-            raise ValueError(
-                f"Unsupported structural impact '{importance}'. "
-                f"Expected one of: {allowed}, or an integer from 1 to 5."
-            ) from exc
-    if not 1 <= importance <= 5:
-        raise ValueError("Structural impact must be between 1 and 5.")
-    return importance
+    label = importance.strip().title()
+    try:
+        return importances[label]
+    except KeyError as exc:
+        allowed = ", ".join(importances)
+        raise ValueError(
+            f"Unsupported structural impact '{importance}'. "
+            f"Expected one of: {allowed}."
+        ) from exc
 
 
 def _deadline_pressure(deadline: datetime, now: datetime) -> float:
@@ -55,11 +49,11 @@ def _deadline_pressure(deadline: datetime, now: datetime) -> float:
 
 def calculate_sor_score(
     *,
-    importance: Union[int, str],
+    importance: str,
     overload_association: int,
     deadline: datetime,
     mood: str,
-    now: Optional[datetime] = None,
+    now: datetime,
 ) -> Dict[str, Any]:
     """Return a live score and its component values for one task."""
     if not mood or not mood.strip():
@@ -76,8 +70,7 @@ def calculate_sor_score(
     if overload_association < 0:
         raise ValueError("Overload association cannot be negative.")
 
-    current_time = now or datetime.now(timezone.utc)
-    deadline_score = _deadline_pressure(deadline, current_time)
+    deadline_score = _deadline_pressure(deadline, now)
     mood_relief = MOOD_RELIEF[mood_label]
     structural_score = _structural_impact_value(importance)
     score = structural_score + overload_association + deadline_score - mood_relief

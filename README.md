@@ -11,9 +11,8 @@ for every task and returns the score and its components on each graph node:
 
 The score uses three task inputs and one dependency-derived factor:
 
-- `S(v)`: structural impact. The importance labels `High`, `Med`, and `Low` map
-  to 3, 2, and 1; numeric values from 1 to 5 are also accepted for
-  compatibility with the current task schema.
+- `S(v)`: structural impact. The required importance labels `High`, `Med`, and
+  `Low` map to 3, 2, and 1.
 - `O(v)`: overload association, calculated as the number of unique, incomplete
   prerequisite tasks in the task's dependency chain. The dependency graph is
   traversed prerequisite-first; a completed task and its prerequisite chain no
@@ -29,3 +28,6 @@ The score uses three task inputs and one dependency-derived factor:
 The dashboard displays the score and factor breakdown and orders its task list from
 highest to lowest SOR score. Scores are computed from current task status and graph
 data when the graph is requested; they are not persisted to `tasks.sor_score`.
+Task records must include importance, deadline, and mood. Existing SQLite databases
+using numeric importance values need to be recreated or migrated to the categorical
+`High`/`Med`/`Low` values before use.
