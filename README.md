@@ -9,17 +9,22 @@ for every task and returns the score and its components on each graph node:
 
 `SOR(v) = S(v) + O(v) + D(v) - P(v)`
 
-The current equally weighted factors are:
+The score uses three task inputs and one dependency-derived factor:
 
-- `S(v)`: task importance plus structural impact (the number of direct dependents).
-- `O(v)`: task priority, used as the overload-association value.
+- `S(v)`: structural impact. The importance labels `High`, `Med`, and `Low` map
+  to 3, 2, and 1; numeric values from 1 to 5 are also accepted for
+  compatibility with the current task schema.
+- `O(v)`: overload association, calculated as the number of unique, incomplete
+  prerequisite tasks in the task's dependency chain. The dependency graph is
+  traversed prerequisite-first; a completed task and its prerequisite chain no
+  longer contribute to downstream overload.
 - `D(v)`: deadline pressure, 0 with no deadline, 5 when due/overdue, and otherwise
   `5 / (1 + days remaining)`, capped at 5.
-- `P(v)`: mood-based feasibility relief subtracted from the score. The task mood
-  labels map to `good=5`, `okay=3`, `tired=2`, and `stressed=1`. Missing optional
-  inputs contribute 0; unsupported mood labels are reported as an API validation
-  error rather than silently interpreted.
+- `P(v)`: mood-based feasibility relief subtracted from the score. Mood labels map
+  to `high energy=5`, `good=4`, `neutral=3`, `fatigued=2`, and `overwhelmed=1`.
+  Missing optional inputs contribute 0; unsupported mood labels and cyclic
+  dependency graphs are reported as API validation errors.
 
 The dashboard displays the score and factor breakdown and orders its task list from
-highest to lowest SOR score. Scores are computed from current task and graph data
-when the graph is requested; they are not persisted to `tasks.sor_score`.
+highest to lowest SOR score. Scores are computed from current task status and graph
+data when the graph is requested; they are not persisted to `tasks.sor_score`.

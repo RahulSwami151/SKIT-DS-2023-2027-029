@@ -383,11 +383,11 @@
     <script>
       const demoGraphData = {
         nodes: [
-          { id: 1, title: 'Read Ch.5', task_type: 'reading', subject: 'DBMS', deadline: '2026-10-15T09:00:00', status: 'completed', priority: 3, importance: 4, mood: 'good', structural_impact: 3, sor_score: 10, sor_components: { structural_impact: 3, importance: 4, structural_score: 7, overload_association: 3, deadline_pressure: 5, feasibility_relief: 5 } },
-          { id: 2, title: 'DBMS Assignment', task_type: 'assignment', subject: 'DBMS', deadline: '2026-10-18T17:00:00', status: 'in_progress', priority: 4, importance: 5, mood: 'okay', structural_impact: 1, sor_score: 12, sor_components: { structural_impact: 1, importance: 5, structural_score: 6, overload_association: 4, deadline_pressure: 5, feasibility_relief: 3 } },
-          { id: 3, title: 'Project Proposal', task_type: 'project', subject: 'AI', deadline: '2026-10-20T17:00:00', status: 'pending', priority: 5, importance: 4, mood: 'stressed', structural_impact: 1, sor_score: 14, sor_components: { structural_impact: 1, importance: 4, structural_score: 5, overload_association: 5, deadline_pressure: 5, feasibility_relief: 1 } },
-          { id: 4, title: 'Quiz Revision', task_type: 'quiz', subject: 'ML', deadline: null, status: 'pending', priority: null, importance: null, mood: 'tired', structural_impact: 0, sor_score: -2, sor_components: { structural_impact: 0, importance: 0, structural_score: 0, overload_association: 0, deadline_pressure: 0, feasibility_relief: 2 } },
-          { id: 5, title: 'Final Review', task_type: 'exam', subject: 'CS', deadline: '2026-10-26T09:00:00', status: 'pending', priority: 5, importance: 5, mood: 'okay', structural_impact: 0, sor_score: 12, sor_components: { structural_impact: 0, importance: 5, structural_score: 5, overload_association: 5, deadline_pressure: 5, feasibility_relief: 3 } }
+          { id: 1, title: 'Read Ch.5', task_type: 'reading', subject: 'DBMS', deadline: '2026-10-15T09:00:00', status: 'completed', importance: 'High', mood: 'high energy', structural_impact: 3, sor_score: 3, sor_components: { structural_impact: 3, overload_association: 0, deadline_pressure: 5, feasibility_relief: 5 } },
+          { id: 2, title: 'DBMS Assignment', task_type: 'assignment', subject: 'DBMS', deadline: '2026-10-18T17:00:00', status: 'in_progress', importance: 'High', mood: 'neutral', structural_impact: 3, sor_score: 5, sor_components: { structural_impact: 3, overload_association: 0, deadline_pressure: 5, feasibility_relief: 3 } },
+          { id: 3, title: 'Project Proposal', task_type: 'project', subject: 'AI', deadline: '2026-10-20T17:00:00', status: 'pending', importance: 'Med', mood: 'overwhelmed', structural_impact: 2, sor_score: 6, sor_components: { structural_impact: 2, overload_association: 0, deadline_pressure: 5, feasibility_relief: 1 } },
+          { id: 4, title: 'Quiz Revision', task_type: 'quiz', subject: 'ML', deadline: null, status: 'pending', importance: 'Low', mood: 'fatigued', structural_impact: 1, sor_score: -1, sor_components: { structural_impact: 1, overload_association: 0, deadline_pressure: 0, feasibility_relief: 2 } },
+          { id: 5, title: 'Final Review', task_type: 'exam', subject: 'CS', deadline: '2026-10-26T09:00:00', status: 'pending', importance: 'High', mood: 'neutral', structural_impact: 3, sor_score: 7, sor_components: { structural_impact: 3, overload_association: 2, deadline_pressure: 5, feasibility_relief: 3 } }
         ],
         edges: [
           { source: 2, target: 1, reason: 'Needs reading summary' },
@@ -455,13 +455,13 @@
         const values = [
           ['Deadline', deadline],
           ['Status', task.status ? task.status.replaceAll('_', ' ') : 'Not set'],
-          ['Priority', task.priority ?? 'Not set'],
-          ['Importance', task.importance ?? 'Not set'],
-          ['Structural impact (direct dependents)', task.structural_impact ?? 'Not available'],
+          ['Structural impact', task.structural_impact ?? 'Not set'],
+          ['Mood', task.mood ?? 'Not set'],
+          ['Overload (incomplete prerequisite chain)', task.sor_components?.overload_association ?? 'Not available'],
           ['SOR score', task.sor_score ?? 'Not available'],
           ['Score breakdown', task.sor_components
-            ? `Importance (${task.sor_components.importance}) + structural impact (${task.sor_components.structural_impact}) + ` +
-              `priority (${task.sor_components.overload_association}) + deadline pressure (${task.sor_components.deadline_pressure}) − ` +
+            ? `Structural impact (${task.sor_components.structural_impact}) + overload (${task.sor_components.overload_association}) + ` +
+              `deadline pressure (${task.sor_components.deadline_pressure}) − ` +
               `mood relief (${task.sor_components.feasibility_relief})`
             : 'Not available']
         ];
