@@ -1428,6 +1428,329 @@ td:first-child {
   .detail-card {
     padding: 17px;
   }
+}
+
+.recommendation-page {
+  width: min(100%, 980px);
+  margin: 0 auto;
+  padding: clamp(24px, 5vw, 58px) 20px 70px;
+  display: grid;
+  gap: 22px;
+}
+.recommendation-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+.recommendation-header h1 {
+  margin: 7px 0 4px;
+  color: var(--maroon);
+  font: 700 clamp(30px, 4vw, 42px) "Space Grotesk";
+  letter-spacing: -1.6px;
+}
+.recommendation-header p {
+  margin: 0;
+  color: #806858;
+}
+.refresh-button {
+  flex: 0 0 auto;
+}
+.recommendation-summary,
+.next-task-section,
+.recommendation-list-section,
+.recommendation-message {
+  background: #fff;
+  border: 1px solid #f1e2d5;
+  border-radius: 17px;
+  box-shadow: 0 4px 18px #6d260d0a;
+}
+.recommendation-summary {
+  padding: 18px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.summary-intro,
+.summary-metrics,
+.summary-metrics span {
+  display: flex;
+  align-items: center;
+}
+.summary-intro {
+  gap: 13px;
+}
+.summary-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: #fff0dc;
+  color: #d86b10;
+}
+.summary-intro div {
+  display: grid;
+  gap: 3px;
+}
+.summary-intro strong {
+  color: #432015;
+}
+.summary-intro div span,
+.summary-metrics {
+  color: #957e70;
+  font-size: 12px;
+}
+.summary-metrics {
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.summary-metrics span {
+  gap: 6px;
+}
+.next-task-section,
+.recommendation-list-section {
+  padding: 22px;
+}
+.section-head {
+  margin-bottom: 15px;
+}
+.section-head h2 {
+  margin: 4px 0 0;
+  color: #32130e;
+  font: 700 21px "Space Grotesk";
+}
+.section-head p {
+  margin: 4px 0 0;
+  color: #a58a7c;
+}
+.next-task-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 20px;
+  background: #fff0dc;
+  color: #a9510d;
+  padding: 8px 11px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.recommendation-list {
+  display: grid;
+  gap: 10px;
+}
+.recommendation-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  padding: 16px;
+  border: 1px solid #f0e5dc;
+  border-radius: 13px;
+  background: #fffdfa;
+}
+.recommendation-card.featured {
+  padding: 21px;
+  border-color: #f0b660;
+  background: linear-gradient(110deg, #fff8eb, #fffdfa 70%);
+  box-shadow: inset 4px 0 #ff9a28;
+}
+.recommendation-rank {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: #f8eee4;
+  color: #89522c;
+  font-weight: 800;
+}
+.featured .recommendation-rank {
+  background: #ffdfac;
+  color: #9c4c08;
+}
+.recommendation-copy {
+  min-width: 0;
+}
+.recommendation-labels {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.task-status,
+.task-importance {
+  border-radius: 5px;
+  padding: 4px 7px;
+  color: #765c4b;
+  background: #f5eee8;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.task-status.status-in-progress {
+  color: #8e5711;
+  background: #fff0c9;
+}
+.task-status.status-pending {
+  color: #58742b;
+  background: #e8f1d7;
+}
+.task-importance {
+  color: #8f4e3f;
+  background: #fff0eb;
+}
+.recommendation-copy h3 {
+  margin: 7px 0 3px;
+  overflow-wrap: anywhere;
+  color: #351a11;
+  font: 700 17px "Space Grotesk";
+}
+.recommendation-copy p {
+  margin: 0 0 8px;
+  color: #987e6f;
+  font-size: 12px;
+}
+.recommendation-deadline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #856e60;
+  font-size: 12px;
+}
+.recommendation-score {
+  min-width: 78px;
+  padding-left: 15px;
+  border-left: 1px solid #f0e5dc;
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+}
+.recommendation-score strong {
+  color: #a94e12;
+  font: 700 24px "Space Grotesk";
+}
+.recommendation-score span,
+.recommendation-count {
+  color: #9c8476;
+  font-size: 11px;
+}
+.recommendation-count {
+  border: 1px solid #f0e5dc;
+  border-radius: 20px;
+  padding: 7px 10px;
+}
+.recommendation-message {
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: #795b49;
+}
+.recommendation-message p {
+  margin: 0;
+}
+.error-message {
+  align-items: flex-start;
+  flex-direction: column;
+  color: #8c3324;
+  background: #fff8f5;
+  border-color: #f3c9bd;
+}
+.error-message span {
+  color: #806858;
+  font-size: 12px;
+}
+.empty-recommendations {
+  color: #53732a;
+  background: #fbfdf6;
+  border-color: #dce8c3;
+}
+.empty-recommendations strong {
+  color: #3e571e;
+}
+.empty-recommendations p {
+  margin-top: 4px;
+  color: #718258;
+}
+.blocked-note {
+  margin: -10px 0 0;
+  color: #8c7669;
+  font-size: 12px;
+}
+.spin {
+  animation: recommendation-spin 1s linear infinite;
+}
+@keyframes recommendation-spin {
+  to { transform: rotate(360deg); }
+}
+@media (max-width: 600px) {
+  .recommendation-page {
+    padding: 26px 13px 44px;
+    gap: 15px;
+  }
+  .recommendation-header {
+    align-items: flex-start;
+  }
+  .recommendation-header h1 {
+    font-size: 29px;
+  }
+  .recommendation-header p {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .refresh-button {
+    padding: 9px;
+    font-size: 0;
+  }
+  .recommendation-summary {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 16px;
+  }
+  .summary-metrics {
+    padding-left: 55px;
+  }
+  .next-task-section,
+  .recommendation-list-section {
+    padding: 16px;
+  }
+  .recommendation-card,
+  .recommendation-card.featured {
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 10px;
+    padding: 14px;
+  }
+  .recommendation-rank {
+    width: 32px;
+    height: 32px;
+  }
+  .recommendation-score {
+    grid-column: 2;
+    grid-row: 2;
+    justify-items: start;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+  }
+  .recommendation-score strong {
+    font-size: 19px;
+  }
+  .recommendation-score span {
+    font-size: 10px;
+  }
+  .recommendation-copy {
+    grid-column: 2;
+  }
+  .recommendation-rank {
+    grid-column: 1;
+    grid-row: 1;
+  }
   .modal-head h2 {
     font-size: 20px;
   }

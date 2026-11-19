@@ -31,3 +31,12 @@ data when the graph is requested; they are not persisted to `tasks.sor_score`.
 Task records must include importance, deadline, and mood. Existing SQLite databases
 using numeric importance values need to be recreated or migrated to the categorical
 `High`/`Med`/`Low` values before use.
+
+## Recommendation interface milestone
+
+The React frontend provides an initial recommendation screen for student `1`. It
+loads `/students/1/dependency-graph`, shows the highest-scoring task whose
+prerequisites are complete, and lists the other ready tasks in descending SOR score.
+Incomplete tasks with unfinished prerequisites are counted as waiting, not presented
+as actionable recommendations. If the frontend and API are on different origins,
+set `VITE_API_BASE_URL` to the backend origin before starting/building the frontend.
