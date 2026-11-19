@@ -8,17 +8,21 @@ import sys, os , sqlalchemy
 import fastapi
 import sqlalchemy.orm
 from datetime import datetime, timedelta
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+import networkx as nx
 
 from backend.app.models import Base, Task, TaskType
 from backend.app.main import app
 from backend.app.database import get_session
+from backend.app.graph_builder import calculate_overload_associations
 from backend.app.sor_scoring import calculate_sor_score
 
 # StaticPool keeps the SAME in-memory SQLite connection alive across
@@ -57,10 +61,10 @@ def seed_tasks():
     session = TestSession()
     reading = Task(student_id=1, title="Read Ch.5", task_type=TaskType.READING,
                     subject="DBMS", deadline=datetime.utcnow() + timedelta(days=1),
-                    status="in_progress", priority=4, importance=5)
+                    status="in_progress", priority=4, importance="High", mood="good")
     assignment = Task(student_id=1, title="Assignment 2", task_type=TaskType.ASSIGNMENT,
                        subject="DBMS", deadline=datetime.utcnow() + timedelta(days=3),
-                       status="pending", priority=3, importance=4)
+                       status="pending", priority=3, importance="Med", mood="neutral")
     session.add_all([reading, assignment])
     session.commit()
     session.close()
@@ -89,61 +93,108 @@ def test_get_dependency_graph_endpoint():
     assert reading["deadline"] is not None
     assert reading["status"] == "in_progress"
     assert reading["priority"] == 4
-    assert reading["importance"] == 5
+    assert reading["importance"] == "High"
     for node in data["nodes"]:
-        assert node["structural_impact"] == sum(
-            edge["target"] == node["id"] for edge in data["edges"]
-        )
-    assert reading["structural_impact"] > 0
+        assert node["structural_impact"] == {"High": 3, "Med": 2, "Low": 1}[
+            node["importance"]
+        ]
     assert any(
         node_titles[edge["source"]] == "Assignment 2"
         and node_titles[edge["target"]] == "Read Ch.5"
         for edge in data["edges"]
     )
     assert reading["sor_score"] is not None
-    assert reading["sor_components"]["importance"] == 5
-    assert reading["sor_components"]["structural_impact"] > 0
-    assert reading["sor_components"]["overload_association"] == 4
-    assert reading["sor_components"]["feasibility_relief"] == 0
+    assert reading["sor_components"]["structural_impact"] == 3
+    assert reading["sor_components"]["overload_association"] == 0
+    assert reading["sor_components"]["feasibility_relief"] == 4
 
 
-def test_sor_score_combines_importance_priority_deadline_and_mood_relief():
+def test_sor_score_combines_structural_impact_overload_deadline_and_mood():
     now = datetime(2026, 11, 4)
     score = calculate_sor_score(
-        importance=4,
-        priority=3,
+        importance="Med",
+        overload_association=2,
         deadline=now + timedelta(days=1),
         mood="good",
-        structural_impact=2,
         now=now,
     )
 
     assert score == {
-        "sor_score": 6.5,
+        "sor_score": 2.5,
         "sor_components": {
             "structural_impact": 2,
-            "importance": 4,
-            "structural_score": 6,
-            "overload_association": 3,
+            "overload_association": 2,
             "deadline_pressure": 2.5,
-            "feasibility_relief": 5,
+            "feasibility_relief": 4,
         },
     }
 
 
-def test_sor_score_handles_missing_optional_inputs():
-    score = calculate_sor_score(
-        importance=None,
-        priority=None,
-        deadline=None,
-        mood=None,
-        structural_impact=0,
-        now=datetime(2026, 11, 4),
-    )
+def test_sor_score_rejects_missing_required_inputs():
+    inputs = {
+        "importance": "Med",
+        "overload_association": 0,
+        "deadline": datetime(2026, 11, 5),
+        "mood": "good",
+        "now": datetime(2026, 11, 4),
+    }
+    required_inputs = {
+        "importance": "Structural impact is required.",
+        "deadline": "Deadline is required.",
+        "mood": "Mood is required.",
+        "overload_association": "Overload association is required.",
+    }
 
-    assert score["sor_score"] == 0
-    assert score["sor_components"]["deadline_pressure"] == 0
-    assert score["sor_components"]["feasibility_relief"] == 0
+    for field, message in required_inputs.items():
+        missing_input = {**inputs, field: None}
+        with pytest.raises(ValueError, match=message):
+            calculate_sor_score(**missing_input)
+
+
+def test_tasks_require_all_sor_inputs():
+    required_fields = ("deadline", "importance", "mood")
+    session = TestSession()
+    for field in required_fields:
+        task_values = {
+            "student_id": 4,
+            "title": f"Task missing {field}",
+            "task_type": TaskType.OTHER,
+            "deadline": datetime(2026, 11, 5),
+            "importance": "High",
+            "mood": "good",
+        }
+        task_values[field] = None
+        session.add(Task(**task_values))
+        with pytest.raises(IntegrityError):
+            session.commit()
+        session.rollback()
+    session.close()
+
+
+def test_completed_prerequisite_reduces_downstream_overload():
+    graph = nx.DiGraph()
+    graph.add_nodes_from([
+        (1, {"status": "pending"}),
+        (2, {"status": "pending"}),
+        (3, {"status": "pending"}),
+    ])
+    graph.add_edges_from([(2, 1), (3, 2)])
+
+    assert calculate_overload_associations(graph) == {1: 0, 2: 1, 3: 2}
+
+    graph.nodes[1]["status"] = "completed"
+    assert calculate_overload_associations(graph) == {1: 0, 2: 0, 3: 1}
+
+
+def test_overload_rejects_cyclic_dependencies():
+    graph = nx.DiGraph([(1, 2), (2, 1)])
+
+    try:
+        calculate_overload_associations(graph)
+    except ValueError as exc:
+        assert "cyclic dependency graph" in str(exc)
+    else:
+        raise AssertionError("Cyclic dependencies must not receive an overload score.")
 
 
 def test_dependency_graph_reports_unsupported_mood():
@@ -153,6 +204,8 @@ def test_dependency_graph_reports_unsupported_mood():
             student_id=2,
             title="Task with unrecognized mood",
             task_type=TaskType.OTHER,
+            importance="Low",
+            deadline=datetime.utcnow(),
             mood="unknown",
         )
     )

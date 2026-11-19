@@ -88,7 +88,7 @@ Sprint dates: 12/9/26 – 29/9/26 (Form-2)
 
 ## Final schema summary
 - `users` — Student accounts.
-- `tasks` — Student tasks containing title, deadline, subject, task_type, priority, importance, mood, status, and sor_score.
+- `tasks` — Student tasks containing title, deadline, subject, task_type, priority, categorical importance (`High`/`Med`/`Low`), mood, status, and sor_score.
 - `tasks.student_id` → `users.id`.
 - `task_dependencies` — Self-referencing dependency edges between tasks.
 - `task_dependencies.task_id` → `tasks.id`.

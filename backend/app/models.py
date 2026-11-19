@@ -60,20 +60,20 @@ class Task(Base):
     title = Column(String(255), nullable=False)
     task_type = Column(SAEnum(TaskType), default=TaskType.OTHER, nullable=False)
     subject = Column(String(100), nullable=True)
-    deadline = Column(DateTime, nullable=True)
+    deadline = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # --- NEW columns for Dashboard / SOR scoring ---
     priority = Column(SmallInteger, nullable=True)      # 1-5, set on Add/Edit Task
-    importance = Column(SmallInteger, nullable=True)    # 1-5, set on Add/Edit Task
-    mood = Column(String(40), nullable=True)             # captured at task creation
+    importance = Column(String(20), nullable=False)      # High/Med/Low, used as structural impact
+    mood = Column(String(40), nullable=False)             # captured at task creation
     status = Column(String(20), default="pending", nullable=False)  # pending/in_progress/completed
     sor_score = Column(Numeric(5, 2), nullable=True)     # computed by backend, never user-entered
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     __table_args__ = (
         CheckConstraint("priority BETWEEN 1 AND 5", name="ck_tasks_priority"),
-        CheckConstraint("importance BETWEEN 1 AND 5", name="ck_tasks_importance"),
+        CheckConstraint("importance IN ('High','Med','Low')", name="ck_tasks_importance"),
         CheckConstraint("status IN ('pending','in_progress','completed')", name="ck_tasks_status"),
     )
 

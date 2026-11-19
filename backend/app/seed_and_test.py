@@ -50,19 +50,19 @@ def seed():
 
     # ---- Tasks (5-6 realistic ones for Alice) ----
     t1 = Task(student_id=alice.id, title="Finish DBMS assignment", deadline=now + timedelta(days=1),
-              subject="DBMS", task_type=TaskType.ASSIGNMENT, priority=5, importance=5,
-              mood="stressed", status="pending")
+              subject="DBMS", task_type=TaskType.ASSIGNMENT, priority=5, importance="High",
+              mood="overwhelmed", status="pending")
     t2 = Task(student_id=alice.id, title="Read DBMS Chapter 4", deadline=now + timedelta(hours=20),
-              subject="DBMS", task_type=TaskType.READING, priority=4, importance=3,
-              mood="okay", status="pending")
+              subject="DBMS", task_type=TaskType.READING, priority=4, importance="High",
+              mood="neutral", status="pending")
     t3 = Task(student_id=alice.id, title="Prepare project ppt", deadline=now + timedelta(days=3),
-              subject="Project", task_type=TaskType.PROJECT, priority=3, importance=4,
-              mood="tired", status="pending")
+              subject="Project", task_type=TaskType.PROJECT, priority=3, importance="High",
+              mood="fatigued", status="pending")
     t4 = Task(student_id=alice.id, title="Submit project abstract", deadline=now + timedelta(days=2),
-              subject="Project", task_type=TaskType.ASSIGNMENT, priority=4, importance=5,
-              mood="okay", status="in_progress")
+              subject="Project", task_type=TaskType.ASSIGNMENT, priority=4, importance="High",
+              mood="neutral", status="in_progress")
     t5 = Task(student_id=alice.id, title="Gym", deadline=now + timedelta(days=1),
-              subject="Personal", task_type=TaskType.OTHER, priority=1, importance=2,
+              subject="Personal", task_type=TaskType.OTHER, priority=1, importance="Med",
               mood="good", status="pending")
     session.add_all([t1, t2, t3, t4, t5])
     session.commit()
@@ -97,7 +97,8 @@ def test_constraints():
     # 1. priority out of range should fail
     try:
         bad = Task(student_id=alice.id, title="Bad priority task", deadline=datetime.now(timezone.utc),
-                   task_type=TaskType.OTHER, priority=9, importance=3, status="pending")
+                   task_type=TaskType.OTHER, priority=9, importance="High",
+                   mood="good", status="pending")
         session.add(bad)
         session.commit()
         print("FAIL: priority=9 was accepted (should have been rejected)")
