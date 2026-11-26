@@ -276,6 +276,11 @@ select:focus-visible {
   padding: 0 12px;
   position: relative;
 }
+.round-icon.active-icon {
+  background: var(--orange);
+  color: #fff;
+  border-color: var(--orange);
+}
 .round-icon i {
   position: absolute;
   width: 6px;
@@ -414,6 +419,10 @@ select:focus-visible {
   gap: 8px;
   font-weight: 700;
   white-space: nowrap;
+}
+.btn-sm {
+  padding: 7px 11px;
+  font-size: 12px;
 }
 .btn-primary {
   background: #ffb84e;
@@ -827,6 +836,72 @@ td:first-child {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
+}
+.dep-box {
+  margin: 14px 0;
+  padding: 13px 14px;
+  background: #fffaf5;
+  border: 1px solid #f0dfd1;
+  border-radius: 11px;
+}
+.dep-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.dep-header strong {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: #3b1b13;
+}
+.dep-header small {
+  display: block;
+  margin-top: 2px;
+  color: #987f70;
+  font-size: 11px;
+}
+.optional-pill {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: #fff0dc;
+  color: #a9510d;
+}
+.dep-body {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #e6d4c6;
+}
+.dep-list-wrap {
+  display: grid;
+  gap: 8px;
+}
+.dep-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.dep-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #ead8c9;
+  background: #fff;
+  color: #5c3e30;
+  font-size: 12px;
+  font-weight: 600;
+}
+.dep-chip.selected {
+  background: #3a0906;
+  color: #fff;
+  border-color: #3a0906;
 }
 .modal-actions {
   display: flex;
