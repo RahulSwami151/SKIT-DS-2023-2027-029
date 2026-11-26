@@ -14,14 +14,14 @@ from .api import router
 
 app = FastAPI(title="TIM - Dependency Detection Service")
 app.include_router(router)
-dashboard_path = Path(__file__).resolve().parents[2] / "frontend" / "task_graph_dashboard.html"
+dashboard_path = Path(__file__).resolve().parents[2] / "frontend" / "main.jsx"
 
 
 @app.get("/", include_in_schema=False)
 @app.get("/dashboard", include_in_schema=False)
 def get_dashboard():
     """Serve the task graph dashboard from the application origin."""
-    return FileResponse(dashboard_path, media_type="text/html")
+    return FileResponse(dashboard_path, media_type="text/jsx")
 
 
 @app.on_event("startup")
