@@ -1,16 +1,16 @@
 import React, { useMemo, useState } from "react";
 import {
-  Activity, Bell, BookOpen, Check, CheckCircle2, ChevronDown, CircleUserRound,
-  Clock3, GitBranch, LayoutDashboard, LogOut, Menu, MoreHorizontal, Plus,
+  Activity, Bell, BookOpen, Check, CheckCircle2,
+  Clock3, GitBranch, LayoutDashboard, LogOut, MoreHorizontal, Plus,
   Search, Settings as SettingsIcon, SlidersHorizontal, Sparkles, Trash2, User,
-  X, Zap, Download, Eye, Pencil, Save, ArrowLeft, CalendarDays
+  X, Zap, Download, Eye, Pencil, Save, ArrowLeft
 } from "lucide-react";
 import "./styles.css";
 
 const seedTasks = [
-  { id: 1, title: "Finalize Architecture Schema", subject: "Core System", deadline: "2026-11-08", type: "Engineering", priority: "High", status: "In Progress", description: "Complete the system architecture and validate the core modules.", dependsOn: [3] },
-  { id: 2, title: "Wireframe Review & Feedback", subject: "TIM UX Flow", deadline: "2026-11-10", type: "Design / Spec", priority: "Medium", status: "Pending", description: "Review the key user journeys and consolidate feedback.", dependsOn: [1] },
-  { id: 3, title: "Database Schema Migration", subject: "Infrastructure", deadline: "2026-11-12", type: "Backend", priority: "Low", status: "Backlog", description: "Prepare and migrate the database schema.", dependsOn: [] },
+  { id: 1, title: "Finalize Architecture Schema", subject: "Core System", deadline: "2026-11-08", type: "Engineering", priority: "High", status: "In Progress", description: "Complete the system architecture and validate the core modules.", dependsOn: [3], dependencyNote: "Requires schema migration tables" },
+  { id: 2, title: "Wireframe Review & Feedback", subject: "TIM UX Flow", deadline: "2026-11-10", type: "Design / Spec", priority: "Medium", status: "Pending", description: "Review the key user journeys and consolidate feedback.", dependsOn: [1], dependencyNote: "" },
+  { id: 3, title: "Database Schema Migration", subject: "Infrastructure", deadline: "2026-11-12", type: "Backend", priority: "Low", status: "Backlog", description: "Prepare and migrate the database schema.", dependsOn: [], dependencyNote: "" },
 ];
 
 const moods = [
@@ -36,8 +36,9 @@ function Brand() {
 
 function Sidebar({ page, navigate, user }) {
   const links = [
-    ["Dashboard", LayoutDashboard], ["Full Graph", GitBranch], ["Journal", BookOpen],
-    ["Settings", SlidersHorizontal], ["Profile", CircleUserRound]
+    ["Dashboard", LayoutDashboard],
+    ["Journal", BookOpen],
+    ["Settings", SlidersHorizontal]
   ];
   return <aside className="sidebar">
     <button className="brand-button" onClick={() => navigate("Dashboard")}><Brand /></button>
@@ -56,13 +57,20 @@ function Sidebar({ page, navigate, user }) {
   </aside>;
 }
 
-function Topbar({ page, navigate, query, setQuery, user }) {
+function Topbar({ page, navigate, query, setQuery }) {
   return <header className="topbar">
     <div><div className="crumb">TIM <span>›</span> Workspace</div><h1>{page}</h1></div>
     <div className="top-actions">
       <label className="search-box"><Search size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search tasks..."/></label>
       <button className="round-icon" aria-label="Notifications"><Bell size={17}/><i/></button>
-      <button className="user-chip" onClick={() => navigate("Profile")}><span className="tiny-avatar">{(user.name || "J").slice(0,1).toUpperCase()}</span>{user.name || "Jordan Doe"}<ChevronDown size={14}/></button>
+      <button
+        className={`round-icon ${page === "Settings" ? "active-icon" : ""}`}
+        aria-label="Settings"
+        title="Settings"
+        onClick={() => navigate("Settings")}
+      >
+        <SettingsIcon size={17}/>
+      </button>
     </div>
   </header>;
 }
@@ -94,7 +102,7 @@ function MoodLogger({ onLog }) {
 }
 
 function GraphCanvas({ tasks, onSelect, fullscreen=false }) {
-  const nodes = tasks.slice(0,8);
+  const nodes = fullscreen ? tasks : tasks.slice(0,8);
   const positions = nodes.map((t,i)=>({x: 12 + (i%3)*37, y: 20 + Math.floor(i/3)*30}));
   return <div className={`graph-canvas ${fullscreen?"large":""}`}>
     <svg className="graph-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -106,7 +114,7 @@ function GraphCanvas({ tasks, onSelect, fullscreen=false }) {
   </div>;
 }
 
-function Dashboard({tasks,setTasks,moodsLog,onMoodLog,onEdit,onDelete,onSelect,onStatus,notify}) {
+function Dashboard({tasks,moodsLog,onMoodLog,onEdit,onDelete,onSelect,onStatus,navigate}) {
   const active=tasks.filter(t=>t.status!=="Done").length, high=tasks.filter(t=>t.priority==="High"&&t.status!=="Done").length, done=tasks.filter(t=>t.status==="Done").length;
   return <div className="page-content">
     <div className="welcome-row"><div><h2>A LITTLE CLARITY GOES A LONG WAY <span>✳</span></h2><p>Here’s your overview. Start with what matters most.</p></div><div className="date-pill"><i/> {dateLabel()}</div></div>
@@ -114,7 +122,14 @@ function Dashboard({tasks,setTasks,moodsLog,onMoodLog,onEdit,onDelete,onSelect,o
     <MoodLogger onLog={onMoodLog}/>
     {moodsLog.length>0&&<section className="panel recent-panel"><SectionHeading title="Recent check-ins" subtitle="Your latest mood logs"/>{moodsLog.slice(-3).reverse().map(log=><div className="recent-row" key={log.id}><i/><strong>{log.mood}</strong><span>{log.note}</span><time>{log.time}</time></div>)}</section>}
     <TaskTable tasks={tasks} onEdit={onEdit} onDelete={onDelete} onStatus={onStatus} onSelect={onSelect}/>
-    <section className="panel graph-preview"><SectionHeading title="Dependency Graph" subtitle="See how your tasks connect" action={<button className="btn btn-secondary" onClick={()=>notify("Open Full Graph from the sidebar to explore the complete graph.")}>View full graph <GitBranch size={15}/></button>}/><GraphCanvas tasks={tasks} onSelect={onSelect}/></section>
+    <section className="panel graph-preview">
+      <SectionHeading
+        title="Dependency Graph"
+        subtitle="See how your tasks connect"
+        action={<button className="btn btn-secondary" onClick={() => navigate("Full Graph")}>View full graph <GitBranch size={15}/></button>}
+      />
+      <GraphCanvas tasks={tasks} onSelect={onSelect}/>
+    </section>
   </div>;
 }
 
@@ -130,26 +145,135 @@ function Journal({moodsLog}) {
   </div>;
 }
 
-function TaskModal({task,onClose,onSave}) {
-  const [form,setForm]=useState(task?{...task}:{title:"",subject:"",deadline:"",type:"Design / Spec",priority:"Medium",status:"Backlog",description:"",dependsOn:[]});
-  const update=(k,v)=>setForm(f=>({...f,[k]:v}));
-  return <div className="modal-backdrop" onMouseDown={e=>e.target===e.currentTarget&&onClose()}><form className="modal-card" onSubmit={e=>{e.preventDefault();onSave({...form,id:task?.id||Date.now()});}}>
-    <div className="modal-head"><div><span className="eyebrow">Workspace / Tasks</span><h2>{task?"Edit task":"Add a task"}</h2></div><button type="button" className="icon-plain" onClick={onClose}><X/></button></div>
-    <label className="field-label">Task title<input required value={form.title} onChange={e=>update("title",e.target.value)} placeholder="e.g. Review the onboarding flow"/></label>
-    <label className="field-label">Subject<input value={form.subject} onChange={e=>update("subject",e.target.value)} placeholder="e.g. Product design"/></label>
-    <div className="form-grid"><label className="field-label">Deadline<input type="date" value={form.deadline} onChange={e=>update("deadline",e.target.value)}/></label><label className="field-label">Task type<select value={form.type} onChange={e=>update("type",e.target.value)}><option>Design / Spec</option><option>Engineering</option><option>Backend</option><option>Research</option><option>Personal</option></select></label><label className="field-label">Priority<select value={form.priority} onChange={e=>update("priority",e.target.value)}><option>High</option><option>Medium</option><option>Low</option></select></label><label className="field-label">Status<select value={form.status} onChange={e=>update("status",e.target.value)}><option>Backlog</option><option>Pending</option><option>In Progress</option><option>Done</option></select></label></div>
-    <label className="field-label">Description<textarea value={form.description} onChange={e=>update("description",e.target.value)} placeholder="Add context, next steps, or notes..."/></label>
-    <div className="modal-actions"><button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button><button className="btn btn-primary"><Check size={15}/>{task?"Save changes":"Create task"}</button></div>
-  </form></div>;
+function TaskModal({ task, tasks, onClose, onSave }) {
+  const [form, setForm] = useState(
+    task
+      ? { dependsOn: [], dependencyNote: "", ...task }
+      : { title: "", subject: "", deadline: "", type: "Design / Spec", priority: "Medium", status: "Backlog", description: "", dependsOn: [], dependencyNote: "" }
+  );
+  const [showDepSection, setShowDepSection] = useState(
+    Boolean((task?.dependsOn && task.dependsOn.length > 0) || task?.dependencyNote)
+  );
+
+  const update = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const toggleDependency = (depId) => {
+    setForm(f => {
+      const current = f.dependsOn || [];
+      const next = current.includes(depId)
+        ? current.filter(id => id !== depId)
+        : [...current, depId];
+      return { ...f, dependsOn: next };
+    });
+  };
+
+  const availableTasks = (tasks || []).filter(t => t.id !== task?.id);
+
+  return <div className="modal-backdrop" onMouseDown={e => e.target === e.currentTarget && onClose()}>
+    <form className="modal-card" onSubmit={e => { e.preventDefault(); onSave({ ...form, id: task?.id || Date.now() }); }}>
+      <div className="modal-head"><div><span className="eyebrow">Workspace / Tasks</span><h2>{task ? "Edit task" : "Add a task"}</h2></div><button type="button" className="icon-plain" onClick={onClose}><X /></button></div>
+      <label className="field-label">Task title<input required value={form.title} onChange={e => update("title", e.target.value)} placeholder="e.g. Review the onboarding flow" /></label>
+      <label className="field-label">Subject<input value={form.subject} onChange={e => update("subject", e.target.value)} placeholder="e.g. Product design" /></label>
+      <div className="form-grid">
+        <label className="field-label">Deadline<input type="date" value={form.deadline} onChange={e => update("deadline", e.target.value)} /></label>
+        <label className="field-label">Task type<select value={form.type} onChange={e => update("type", e.target.value)}><option>Design / Spec</option><option>Engineering</option><option>Backend</option><option>Research</option><option>Personal</option></select></label>
+        <label className="field-label">Priority<select value={form.priority} onChange={e => update("priority", e.target.value)}><option>High</option><option>Medium</option><option>Low</option></select></label>
+        <label className="field-label">Status<select value={form.status} onChange={e => update("status", e.target.value)}><option>Backlog</option><option>Pending</option><option>In Progress</option><option>Done</option></select></label>
+      </div>
+
+      <div className="dep-box">
+        <div className="dep-header">
+          <div>
+            <strong>Task Dependencies <span className="optional-pill">Optional</span></strong>
+            <small>Link prerequisite tasks or define a custom dependency relationship</small>
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => setShowDepSection(s => !s)}
+          >
+            {showDepSection ? "Hide" : "+ Add dependency"}
+          </button>
+        </div>
+
+        {showDepSection && (
+          <div className="dep-body">
+            {availableTasks.length > 0 && (
+              <div className="dep-list-wrap">
+                <span className="eyebrow">Depends on existing tasks</span>
+                <div className="dep-chips">
+                  {availableTasks.map(t => {
+                    const checked = (form.dependsOn || []).includes(t.id);
+                    return (
+                      <button
+                        type="button"
+                        key={t.id}
+                        className={`dep-chip ${checked ? "selected" : ""}`}
+                        onClick={() => toggleDependency(t.id)}
+                      >
+                        <GitBranch size={13} />
+                        <span>{t.title}</span>
+                        {checked && <Check size={13} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            <label className="field-label" style={{ margin: "10px 0 0" }}>
+              Custom dependency relationship / note
+              <input
+                value={form.dependencyNote || ""}
+                onChange={e => update("dependencyNote", e.target.value)}
+                placeholder="e.g. Blocked until API contract is finalized..."
+              />
+            </label>
+          </div>
+        )}
+      </div>
+
+      <label className="field-label">Description<textarea value={form.description} onChange={e => update("description", e.target.value)} placeholder="Add context, next steps, or notes..." /></label>
+      <div className="modal-actions"><button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button><button className="btn btn-primary"><Check size={15} />{task ? "Save changes" : "Create task"}</button></div>
+    </form>
+  </div>;
 }
 
-function TaskDetail({task,onClose,onEdit,onStatus}) {
-  if(!task)return null;
-  return <div className="modal-backdrop" onMouseDown={e=>e.target===e.currentTarget&&onClose()}><section className="detail-card"><div className="modal-head"><div><span className="eyebrow">Task detail & inspection</span><h2>{task.title}</h2></div><button className="icon-plain" onClick={onClose}><X/></button></div><div className="detail-grid"><div><small>Subject</small><strong>{task.subject}</strong></div><div><small>Deadline</small><strong>{task.deadline||"Not set"}</strong></div><div><small>Task type</small><strong>{task.type}</strong></div><div><small>Priority</small><strong>{task.priority}</strong></div><div><small>Status</small><select value={task.status} onChange={e=>onStatus(task.id,e.target.value)}><option>Backlog</option><option>Pending</option><option>In Progress</option><option>Done</option></select></div></div><div className="detail-description"><small>Description</small><p>{task.description||"No description has been added yet."}</p></div><div className="modal-actions"><button className="btn btn-secondary" onClick={onClose}>Close</button><button className="btn btn-primary" onClick={()=>onEdit(task)}><Pencil size={15}/> Edit task</button></div></section></div>;
+function TaskDetail({ task, tasks, onClose, onEdit, onStatus }) {
+  if (!task) return null;
+  const linkedDeps = (tasks || []).filter(t => (task.dependsOn || []).includes(t.id));
+  return <div className="modal-backdrop" onMouseDown={e => e.target === e.currentTarget && onClose()}>
+    <section className="detail-card">
+      <div className="modal-head"><div><span className="eyebrow">Task detail &amp; inspection</span><h2>{task.title}</h2></div><button className="icon-plain" onClick={onClose}><X /></button></div>
+      <div className="detail-grid">
+        <div><small>Subject</small><strong>{task.subject}</strong></div>
+        <div><small>Deadline</small><strong>{task.deadline || "Not set"}</strong></div>
+        <div><small>Task type</small><strong>{task.type}</strong></div>
+        <div><small>Priority</small><strong>{task.priority}</strong></div>
+        <div><small>Status</small><select value={task.status} onChange={e => onStatus(task.id, e.target.value)}><option>Backlog</option><option>Pending</option><option>In Progress</option><option>Done</option></select></div>
+      </div>
+      {(linkedDeps.length > 0 || task.dependencyNote) && (
+        <div className="detail-description">
+          <small>Dependencies</small>
+          {linkedDeps.length > 0 && (
+            <div className="dep-chips" style={{ marginTop: 6 }}>
+              {linkedDeps.map(d => <span key={d.id} className="tag"><GitBranch size={12} style={{ marginRight: 4 }} />{d.title}</span>)}
+            </div>
+          )}
+          {task.dependencyNote && <p style={{ marginTop: 6 }}>{task.dependencyNote}</p>}
+        </div>
+      )}
+      <div className="detail-description"><small>Description</small><p>{task.description || "No description has been added yet."}</p></div>
+      <div className="modal-actions"><button className="btn btn-secondary" onClick={onClose}>Close</button><button className="btn btn-primary" onClick={() => onEdit(task)}><Pencil size={15} /> Edit task</button></div>
+    </section>
+  </div>;
 }
 
 function FullGraph({tasks,onSelect,navigate}) {
-  return <div className="page-content"><div className="welcome-row"><div><h2>Task dependency map <span>✳</span></h2><p>Explore the relationships that shape your workload.</p></div><button className="btn btn-secondary" onClick={()=>navigate("Profile")}>Saved snapshots</button></div><section className="panel full-graph-panel"><div className="graph-toolbar"><div><strong>Dynamic Cognitive Dependency Graph</strong><small>Click any node to inspect its task</small></div><div><button className="btn btn-secondary" onClick={()=>window.print()}>Export / Print <Download size={15}/></button></div></div><GraphCanvas tasks={tasks} onSelect={onSelect} fullscreen/><div className="graph-legend"><span><i className="legend-dot active-dot"/> In progress</span><span><i className="legend-dot pending-dot"/> Pending</span><span><i className="legend-dot done-dot"/> Completed</span></div></section></div>;
+  return <div className="page-content">
+    <button className="back-link" onClick={() => navigate("Dashboard")}><ArrowLeft size={16}/> Back to dashboard</button>
+    <div className="welcome-row"><div><h2>Task dependency map <span>✳</span></h2><p>Explore the relationships that shape your workload.</p></div><button className="btn btn-secondary" onClick={()=>navigate("Profile")}>Saved snapshots</button></div>
+    <section className="panel full-graph-panel"><div className="graph-toolbar"><div><strong>Dynamic Cognitive Dependency Graph</strong><small>Click any node to inspect its task</small></div><div><button className="btn btn-secondary" onClick={()=>window.print()}>Export / Print <Download size={15}/></button></div></div><GraphCanvas tasks={tasks} onSelect={onSelect} fullscreen/><div className="graph-legend"><span><i className="legend-dot active-dot"/> In progress</span><span><i className="legend-dot pending-dot"/> Pending</span><span><i className="legend-dot done-dot"/> Completed</span></div></section>
+  </div>;
 }
 
 function SettingsScreen({user,setUser,notify,onLogout}) {
@@ -161,7 +285,7 @@ function SettingsScreen({user,setUser,notify,onLogout}) {
 function ProfileScreen({user,tasks,snapshots,setSnapshots,onView,onToast}) {
   const createSnapshot=()=>{const snap={id:Date.now(),name:`Graph snapshot — ${dateLabel()}`,date:dateLabel(),tasks:JSON.parse(JSON.stringify(tasks))};setSnapshots(s=>[snap,...s]);onToast("Graph snapshot saved.");};
   return <div className="page-content"><div className="profile-banner"><div><span className="eyebrow">Workspace &gt; Profile</span><h2>User Profile</h2></div><span className="version-tag">SYS_STATUS: [OK]</span></div><section className="panel profile-summary"><SectionHeading title="[ 01 ] Account Summary" subtitle="Your workspace identity and usage"/><div className="summary-layout"><div className="avatar-frame"><span className="avatar huge">{(user.name||"J").slice(0,1)}</span></div><div className="summary-fields"><div><small>User name</small><strong>{user.name}</strong></div><div><small>Email identifier</small><strong>{user.email}</strong></div><div><small>Workspace role</small><strong>Member / Researcher</strong></div><div><small>Join date</small><strong>Workspace member</strong></div></div></div><div className="summary-footer"><span>STORAGE_QUOTA: <b>Local browser storage</b></span><button className="btn btn-secondary" onClick={()=>onToast("Edit your details in Settings.")}>Edit profile</button></div></section>
-    <section className="panel snapshots-panel"><SectionHeading title="[ 02 ] Saved Dependency Graphs" subtitle="Historical snapshots" action={<button className="btn btn-primary" onClick={createSnapshot}><Save size={15}/> Save current graph</button>}/>{snapshots.length?snapshots.map((s,i)=><div className="snapshot-row" key={s.id}><div className="snapshot-thumb"><GitBranch/></div><div className="snapshot-info"><strong>{s.name}</strong><small>{s.tasks.length} nodes · Archived snapshot · {s.date}</small></div><button className="btn btn-secondary" onClick={()=>onView(s)}><Eye size={15}/> View</button></div>):<div className="empty-state">No saved snapshots yet. Save your current dependency graph to keep a historical version.</div>}</section></div>;
+    <section className="panel snapshots-panel"><SectionHeading title="[ 02 ] Saved Dependency Graphs" subtitle="Historical snapshots" action={<button className="btn btn-primary" onClick={createSnapshot}><Save size={15}/> Save current graph</button>}/>{snapshots.length?snapshots.map((s)=><div className="snapshot-row" key={s.id}><div className="snapshot-thumb"><GitBranch/></div><div className="snapshot-info"><strong>{s.name}</strong><small>{s.tasks.length} nodes · Archived snapshot · {s.date}</small></div><button className="btn btn-secondary" onClick={()=>onView(s)}><Eye size={15}/> View</button></div>):<div className="empty-state">No saved snapshots yet. Save your current dependency graph to keep a historical version.</div>}</section></div>;
 }
 
 function SnapshotViewer({snapshot,onBack,onSelect}) {
@@ -197,8 +321,8 @@ export default function App() {
   const updateSnapshots=fn=>setSnapshots(current=>{const next=typeof fn==="function"?fn(current):fn;persist("tim_snapshots",next);return next;});
   const login=profile=>{updateUser({...user,...profile});setAuthenticated(true);persist("tim_auth",true);};
   if(!authenticated)return <AuthScreen onLogin={login}/>;
-  return <div className="app-shell"><Sidebar page={snapshot?"Profile":page} navigate={navigate} user={user}/><main className="main-content"><Topbar page={snapshot?"Snapshot Viewer":page} navigate={navigate} query={query} setQuery={setQuery} user={user}/>
-    {page==="Dashboard"&&<Dashboard tasks={filtered} moodsLog={moodsLog} onMoodLog={logMood} onEdit={setEditing} onDelete={remove} onSelect={setSelected} onStatus={status} notify={notify}/>}
+  return <div className="app-shell"><Sidebar page={snapshot?"Profile":page} navigate={navigate} user={user}/><main className="main-content"><Topbar page={snapshot?"Snapshot Viewer":page} navigate={navigate} query={query} setQuery={setQuery}/>
+    {page==="Dashboard"&&<Dashboard tasks={filtered} moodsLog={moodsLog} onMoodLog={logMood} onEdit={setEditing} onDelete={remove} onSelect={setSelected} onStatus={status} navigate={navigate}/>}
     {page==="Journal"&&<Journal moodsLog={moodsLog}/>}
     {page==="Full Graph"&&<FullGraph tasks={filtered} onSelect={setSelected} navigate={navigate}/>}
     {page==="Settings"&&<SettingsScreen user={user} setUser={updateUser} notify={notify} onLogout={()=>{setAuthenticated(false);persist("tim_auth",false);}}/>}
@@ -206,7 +330,7 @@ export default function App() {
     {snapshot&&<SnapshotViewer snapshot={snapshot} onBack={()=>setSnapshot(null)} onSelect={setSelected}/>}
     </main>
     {toast&&<div className="toast"><CheckCircle2 size={17}/>{toast}</div>}
-    {editing!==undefined&&<TaskModal task={editing} onClose={()=>setEditing(undefined)} onSave={saveTask}/>}
-    {selected&&<TaskDetail task={tasks.find(t=>t.id===selected.id)||selected} onClose={()=>setSelected(null)} onEdit={task=>{setSelected(null);setEditing(task);}} onStatus={status}/>}
+    {editing!==undefined&&<TaskModal task={editing} tasks={tasks} onClose={()=>setEditing(undefined)} onSave={saveTask}/>}
+    {selected&&<TaskDetail task={tasks.find(t=>t.id===selected.id)||selected} tasks={tasks} onClose={()=>setSelected(null)} onEdit={task=>{setSelected(null);setEditing(task);}} onStatus={status}/>}
   </div>;
 }
